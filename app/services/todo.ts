@@ -1,23 +1,45 @@
-export const getTodos = async () => {
-    const res = await fetch("/api/todos");
+import { TodoPayload } from "../types/Todo";
+// here I'll write the service files again 
 
-    if (!res.ok) {
-        throw new Error("Failed to fetch Todos!")
+// this'll only call the /api/todos endpoint  
+export async function getTodos() {
+    try {
+        const res = await fetch("/api/todos");
+
+        if (!res.ok) {
+            throw new Error("Failed to fetch todos!")
+        };
+
+        return res.json();
+
+    } catch (error) {
+        console.error("getTodos failed:", error);
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error("Unexpected error while fetching todos");
     };
-
-    return res.json();
 };
 
-export const createTodo = async (title: string, desc: string) => {
-    const res = await fetch("/api/todos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, desc })
-    });
 
-    if (!res.ok) {
-        throw new Error("Failed to create Todos!")
-    };
+export async function createTodo(payload: TodoPayload) {
+    try {
+        const res = await fetch("/api/todos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
 
-    return res.json();
-};
+        if (!res.ok) {
+            throw new Error(`Failed to create todos: ${res.status}`);
+        };
+
+        return res.json();
+    } catch (error) {
+        console.error("createTodo failed:", error);
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error("Unexpected error while creating todo");
+    }
+}

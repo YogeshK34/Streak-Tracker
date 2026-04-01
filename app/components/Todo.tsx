@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { createTodo, getTodos } from "../services/todo";
 import { TodoItem } from "../types/Todo";
 
-
 export function Todo() {
     const [title, setTitle] = useState<string>("");
     const [desc, setDesc] = useState<string>("");
@@ -19,7 +18,7 @@ export function Todo() {
         if (!title || !desc)
             return alert("Title and description both are required");
 
-        const res = await createTodo(title, desc);
+        const res = await createTodo({ title, desc });
         setTodos((prev) => [...prev, res.data]);
 
         // clear the inputs 
