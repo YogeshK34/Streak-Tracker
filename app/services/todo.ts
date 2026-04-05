@@ -43,3 +43,8 @@ export async function createTodo(payload: TodoPayload) {
         throw new Error("Unexpected error while creating todo");
     }
 }
+
+// I have to create 2 more services now: 
+// 1. PATCH service 
+// 2. DELETE service 
+// maybe I can think about adding a PUT service as well   
