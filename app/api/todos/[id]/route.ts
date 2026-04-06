@@ -14,10 +14,10 @@ export async function PATCH(
             return NextResponse.json({ error: "Invalid todo id" }, { status: 400 });
         }
 
+        // request body validation
         const body = await request.json();
         const todo = todosArray.find((item) => item.id === todoId);
 
-        // request body validation
         if (!todo) {
             return NextResponse.json({ error: `Todo with id ${id} not found` }, { status: 404 });
         }
@@ -36,4 +36,33 @@ export async function PATCH(
         console.error(error);
         return NextResponse.json({ error: "Failed to update Todo!" }, { status: 500 })
     }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const todoId = Number(id);
+
+        if (Number.isNaN(todoId)) {
+            return NextResponse.json({ error: "Invalid Todo Id!" }, { status: 400 })
+        };
+
+        const body = await request.json();
+        const todo = todosArray.find((item) => item.id === todoId);
+
+        if (!todo) {
+            return NextResponse.json({ error: `Todo with id ${id} not found` }, { status: 404 });
+        }
+
+
+
+
+
+    } catch (error) {
+
+    }
+
 }

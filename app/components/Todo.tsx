@@ -1,12 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createTodo, getTodos } from "../services/todo";
+import { createTodo, getTodos, updateTodo } from "../services/todo";
 import { TodoItem } from "../types/Todo";
 
 export function Todo() {
     const [title, setTitle] = useState<string>("");
     const [desc, setDesc] = useState<string>("");
+    const [updatedTitle, setUpdatedTitle] = useState<string>("");
+    const [updatedDesc, setUpdatedDesc] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [todos, setTodos] = useState<TodoItem[]>([]);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     useEffect(() => {
         getTodos().then((res) => {
@@ -25,6 +29,28 @@ export function Todo() {
         setTitle("");
         setDesc("");
     };
+
+    const handleTodoUpdate = async (id: number) => {
+        try {
+            if (!updatedTitle && !updatedDesc) {
+                return alert("To update you need to provide either a field Title or Desc!")
+            };
+
+            const res = await updateTodo({ title: updatedTitle, desc: updatedDesc }, id);
+
+            setTodos((prev) =>
+                prev.map((todo) => (todo.id === id ? res.data : todo))
+            );
+
+            // clear the inputs
+            setUpdatedTitle("");
+            setUpdatedDesc("");
+            setEditingId(null);
+        } catch (error) {
+            console.error("handleTodoUpdate failed:", error);
+            alert("Failed to update todo");
+        }
+    }
 
     return (
         <section className="mx-auto w-full max-w-4xl px-4 pb-12 md:px-8">
@@ -82,11 +108,68 @@ export function Todo() {
                 <div className="grid gap-4 md:grid-cols-2">
                     {todos.map((todo) => (
                         <article key={todo.id} className="surface-card rounded-3xl p-5">
-                            <div className="mb-3 inline-flex rounded-full border border-slate-300/70 bg-slate-50/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                Task #{todo.id}
-                            </div>
-                            <h2 className="text-xl font-semibold tracking-tight text-slate-900">{todo.title}</h2>
-                            <p className="mt-2 text-slate-600">{todo.desc}</p>
+                            {editingId === todo.id ? (
+                                // Edit mode
+                                <div className="space-y-3">
+                                    <div>
+                                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Title</span>
+                                        <input
+                                            type="text"
+                                            value={updatedTitle}
+                                            onChange={(e) => setUpdatedTitle(e.target.value)}
+                                            placeholder={todo.title}
+                                            className="mt-1 w-full rounded-lg border border-slate-200/80 bg-white/85 px-3 py-2 text-slate-900 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-200/40"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Description</span>
+                                        <input
+                                            type="text"
+                                            value={updatedDesc}
+                                            onChange={(e) => setUpdatedDesc(e.target.value)}
+                                            placeholder={todo.desc}
+                                            className="mt-1 w-full rounded-lg border border-slate-200/80 bg-white/85 px-3 py-2 text-slate-900 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-200/40"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleTodoUpdate(todo.id)}
+                                            className="flex-1 rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setEditingId(null);
+                                                setUpdatedTitle("");
+                                                setUpdatedDesc("");
+                                            }}
+                                            className="flex-1 rounded-lg bg-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-400"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                // View mode
+                                <>
+                                    <div className="mb-3 inline-flex rounded-full border border-slate-300/70 bg-slate-50/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                        Task #{todo.id}
+                                    </div>
+                                    <h2 className="text-xl font-semibold tracking-tight text-slate-900">{todo.title}</h2>
+                                    <p className="mt-2 text-slate-600">{todo.desc}</p>
+                                    <button
+                                        onClick={() => {
+                                            setEditingId(todo.id);
+                                            setUpdatedTitle(todo.title);
+                                            setUpdatedDesc(todo.desc);
+                                        }}
+                                        className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                    >
+                                        Edit
+                                    </button>
+                                </>
+                            )}
                         </article>
                     ))}
                 </div>
