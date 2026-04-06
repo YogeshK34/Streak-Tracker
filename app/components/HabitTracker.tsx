@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import {
   format,
@@ -8,281 +9,288 @@ import {
   isToday,
   isFuture,
   isPast,
+  startOfDay,
   subDays,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
-interface HabitData {
-  [dateString: string]: boolean;
+interface MarkedDays {
+  [key: string]: boolean;
 }
 
 export function HabitTracker() {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [habitData, setHabitData] = useState<HabitData>({});
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [longestStreak, setLongestStreak] = useState(0);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [markedDays, setMarkedDays] = useState<MarkedDays>({});
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load habits from localStorage on mount
+  // Load from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("habits");
+    const stored = localStorage.getItem("habit-tracker-days");
     if (stored) {
-      const parsed = JSON.parse(stored);
-      setHabitData(parsed);
-      calculateStreaks(parsed);
+      setMarkedDays(JSON.parse(stored));
     }
+    setIsLoaded(true);
   }, []);
 
-  // Calculate streaks whenever habit data changes
-  const calculateStreaks = (data: HabitData) => {
-    let current = 0;
-    let longest = 0;
-    let tempStreak = 0;
-
-    // Start from today and go backwards
-    let checkDate = new Date();
-    checkDate.setHours(0, 0, 0, 0);
-
-    while (true) {
-      const dateStr = format(checkDate, "yyyy-MM-dd");
-      if (data[dateStr]) {
-        tempStreak++;
-        current = tempStreak;
-      } else {
-        if (tempStreak > longest) {
-          longest = tempStreak;
-        }
-        if (format(checkDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")) {
-          // Today's date, if not done, streak is broken
-          break;
-        }
-        tempStreak = 0;
-      }
-      checkDate = subDays(checkDate, 1);
+  // Save to localStorage whenever markedDays changes
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("habit-tracker-days", JSON.stringify(markedDays));
     }
+  }, [markedDays, isLoaded]);
 
-    setCurrentStreak(current);
-    setLongestStreak(Math.max(longest, current));
-  };
-
-  const toggleDay = (date: Date) => {
-    const dateStr = format(date, "yyyy-MM-dd");
-
-    // Can't modify future days
-    if (isFuture(date) && !isToday(date)) return;
-
-    const newData = { ...habitData };
-    newData[dateStr] = !newData[dateStr];
-    setHabitData(newData);
-
-    // Persist to localStorage
-    localStorage.setItem("habits", JSON.stringify(newData));
-
-    // Recalculate streaks
-    calculateStreaks(newData);
-  };
-
-  const previousMonth = () => {
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1));
-  };
-
+  // Get all days in the current month
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Get all days in the month
-  const allDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  // Get the day of week for the first day (0=Sunday, 1=Monday, etc.)
+  const firstDayOfWeek = monthStart.getDay();
 
-  // Add padding for days before the month starts (to align to week)
-  const startingDayOfWeek = monthStart.getDay(); // 0 = Sunday, 1 = Monday
-  const paddingDays = Array(startingDayOfWeek).fill(null);
+  // Add empty cells at the beginning for days from previous month
+  const emptyDaysAtStart = Array(firstDayOfWeek).fill(null);
 
-  const calendarDays = [...paddingDays, ...allDays];
+  // Combine empty days with actual days
+  const calendarDays = [...emptyDaysAtStart, ...daysInMonth];
+
+  // Calculate current streak
+  const calculateCurrentStreak = () => {
+    let streak = 0;
+    let currentDate = startOfDay(new Date());
+
+    while (true) {
+      const dateStr = format(currentDate, "yyyy-MM-dd");
+      if (markedDays[dateStr]) {
+        streak++;
+        currentDate = subDays(currentDate, 1);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  };
+
+  // Calculate longest streak
+  const calculateLongestStreak = () => {
+    const sortedDates = Object.entries(markedDays)
+      .filter(([, marked]) => marked)
+      .map(([date]) => new Date(date))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (sortedDates.length === 0) return 0;
+
+    let longestStreak = 1;
+    let currentStreak = 1;
+
+    for (let i = 1; i < sortedDates.length; i++) {
+      const prevDate = sortedDates[i - 1];
+      const currDate = sortedDates[i];
+      const dayDiff = Math.floor(
+        (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (dayDiff === 1) {
+        currentStreak++;
+        longestStreak = Math.max(longestStreak, currentStreak);
+      } else {
+        currentStreak = 1;
+      }
+    }
+
+    return longestStreak;
+  };
+
+  const currentStreak = calculateCurrentStreak();
+  const longestStreak = calculateLongestStreak();
+
+  const handleDayClick = (day: Date) => {
+    // Don't allow marking future days
+    if (isFuture(day)) {
+      return;
+    }
+
+    const dateStr = format(day, "yyyy-MM-dd");
+    setMarkedDays((prev) => ({
+      ...prev,
+      [dateStr]: !prev[dateStr],
+    }));
+  };
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth((prev) => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth((prev) => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  };
+
+  if (!isLoaded) {
+    return <div className="text-center p-8">Loading...</div>;
+  }
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 pb-12 md:px-8">
-      {/* Header */}
-      <div className="surface-panel mb-6 rounded-3xl p-6 md:p-8">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <section className="mx-auto w-full max-w-2xl px-4 pb-12 md:px-8">
+      {/* Streak Card */}
+      <Card className="mb-6 p-6 md:p-8 bg-gradient-to-br from-red-50 to-orange-50 border-red-200">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-              Habit Tracker
-            </p>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-              Your Daily Streak
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-slate-600 md:text-base">
-              Mark your days as complete and build an unstoppable streak.
-            </p>
-          </div>
-        </div>
-
-        {/* Streak Display */}
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl bg-gradient-to-br from-red-50 to-orange-50 p-4 border border-red-200/50">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 mb-2">
+            <p className="text-xs uppercase tracking-[0.22em] text-red-600 font-semibold">
               Current Streak
             </p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-red-600">
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-4xl md:text-5xl font-bold text-red-600">
                 {currentStreak}
               </span>
-              <span className="text-2xl">🔥</span>
-              <span className="text-sm text-slate-600 ml-auto">
-                {currentStreak === 1 ? "day" : "days"}
-              </span>
+              <span className="text-3xl">🔥</span>
             </div>
-          </div>
-
-          <div className="rounded-2xl bg-gradient-to-br from-cyan-50 to-emerald-50 p-4 border border-cyan-200/50">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 mb-2">
-              Longest Streak
+            <p className="text-sm text-red-700 mt-1">
+              {currentStreak === 1 ? "day" : "days"} in a row
             </p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-cyan-600">
-                {longestStreak}
-              </span>
-              <span className="text-2xl">⭐</span>
-              <span className="text-sm text-slate-600 ml-auto">
-                {longestStreak === 1 ? "day" : "days"}
-              </span>
-            </div>
           </div>
+          {longestStreak > 0 && longestStreak !== currentStreak && (
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-[0.22em] text-orange-600 font-semibold">
+                Longest Streak
+              </p>
+              <p className="text-2xl font-bold text-orange-600 mt-1">
+                {longestStreak}
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      </Card>
 
       {/* Calendar */}
-      <div className="surface-panel rounded-3xl p-6 md:p-8">
+      <Card className="p-6 md:p-8">
         {/* Month Navigation */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" size="sm" onClick={goToPreviousMonth}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           <h2 className="text-2xl font-semibold text-slate-900">
             {format(currentMonth, "MMMM yyyy")}
           </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={previousMonth}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 transition text-slate-600"
-              title="Previous month"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={nextMonth}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 transition text-slate-600"
-              title="Next month"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={goToNextMonth}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
+        {/* Weekday Headers */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
             <div
               key={day}
-              className="text-center text-xs font-semibold uppercase text-slate-500 py-2"
+              className="h-10 flex items-center justify-center text-xs font-semibold text-slate-600 uppercase"
             >
               {day}
             </div>
           ))}
         </div>
 
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-2">
+        {/* Calendar Grid */}
+        <div className="grid grid-cols-7 gap-1">
           {calendarDays.map((day, index) => {
-            if (day === null) {
-              return <div key={`padding-${index}`} className="aspect-square" />;
+            if (!day) {
+              return (
+                <div
+                  key={`empty-${index}`}
+                  className="aspect-square rounded-lg bg-slate-50"
+                />
+              );
             }
 
             const dateStr = format(day, "yyyy-MM-dd");
-            const isCompleted = habitData[dateStr] || false;
+            const isMarked = markedDays[dateStr];
             const isTodayDate = isToday(day);
             const isFutureDate = isFuture(day);
-            const isPastDate = isPast(day) && !isTodayDate;
-            const canInteract = !isFutureDate || isTodayDate;
 
             return (
               <button
                 key={dateStr}
-                onClick={() => toggleDay(day)}
-                disabled={isFutureDate && !isTodayDate}
+                onClick={() => handleDayClick(day)}
+                disabled={isFutureDate}
                 className={`
-                  aspect-square relative rounded-lg font-semibold text-sm
-                  transition-all duration-200 cursor-pointer
+                  aspect-square rounded-lg relative group transition-all
+                  ${isFutureDate ? "opacity-40 cursor-not-allowed bg-slate-100" : ""}
                   ${
-                    !canInteract
-                      ? "cursor-not-allowed bg-slate-50 text-slate-400"
-                      : isCompleted
-                        ? "bg-red-50 text-red-600 border-2 border-red-300"
-                        : isTodayDate
-                          ? "bg-cyan-100 text-slate-900 border-2 border-cyan-400 ring-2 ring-cyan-300/50"
-                          : isPastDate
-                            ? "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                            : "bg-white text-slate-700 border border-slate-200"
+                    isTodayDate
+                      ? "ring-2 ring-offset-2 ring-cyan-500 bg-cyan-50"
+                      : "bg-white border border-slate-200 hover:border-slate-300"
                   }
+                  ${isMarked && !isFutureDate ? "bg-red-50 border-red-300" : ""}
+                  ${!isFutureDate && "hover:shadow-md cursor-pointer"}
                 `}
               >
-                <div className="w-full h-full flex items-center justify-center relative">
+                {/* Day number */}
+                <div
+                  className={`text-sm font-semibold absolute top-1 left-1 ${
+                    isFutureDate
+                      ? "text-slate-400"
+                      : isTodayDate
+                        ? "text-cyan-700"
+                        : "text-slate-700"
+                  }`}
+                >
                   {format(day, "d")}
-
-                  {/* Diagonal line for completed days */}
-                  {isCompleted && (
-                    <svg
-                      className="absolute inset-0 w-full h-full pointer-events-none"
-                      viewBox="0 0 100 100"
-                      preserveAspectRatio="none"
-                    >
-                      <line
-                        x1="10"
-                        y1="10"
-                        x2="90"
-                        y2="90"
-                        stroke="#dc2626"
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
                 </div>
+
+                {/* Diagonal red line for marked days */}
+                {isMarked && (
+                  <svg
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                  >
+                    <line
+                      x1="10"
+                      y1="10"
+                      x2="90"
+                      y2="90"
+                      stroke="#dc2626"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
               </button>
             );
           })}
         </div>
 
         {/* Legend */}
-        <div className="mt-8 pt-6 border-t border-slate-200 flex flex-wrap gap-4 text-sm">
+        <div className="mt-6 flex flex-wrap gap-4 text-xs text-slate-600">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-cyan-100 border-2 border-cyan-400" />
-            <span className="text-slate-600">Today</span>
+            <div className="w-4 h-4 rounded bg-cyan-50 ring-2 ring-cyan-500" />
+            <span>Today</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-red-50 border-2 border-red-300 relative">
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+            <div className="w-4 h-4 rounded bg-red-50 border border-red-300 flex items-center justify-center">
+              <svg width="8" height="8" viewBox="0 0 100 100">
                 <line
                   x1="10"
                   y1="10"
                   x2="90"
                   y2="90"
                   stroke="#dc2626"
-                  strokeWidth="6"
+                  strokeWidth="12"
                 />
               </svg>
             </div>
-            <span className="text-slate-600">Completed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-slate-50 border border-slate-200" />
-            <span className="text-slate-600">Available</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-slate-50 border border-slate-200 opacity-50" />
-            <span className="text-slate-400">Future</span>
+            <span>Marked as done</span>
           </div>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }
