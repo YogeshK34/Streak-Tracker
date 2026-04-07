@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getHabitDays, setHabitDay } from "@/app/services/habit";
 import { useTheme } from "@/lib/theme-provider";
+import { useAuth } from "@/lib/auth-context";
 
 interface MarkedDays {
   [key: string]: boolean;
@@ -28,11 +29,17 @@ export function HabitTracker() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
 
   const today = startOfDay(new Date());
   const todayKey = format(today, "yyyy-MM-dd");
 
   useEffect(() => {
+    if (!user) {
+      setIsLoaded(false);
+      return;
+    }
+
     getHabitDays()
       .then((res) => {
         const mappedDays: MarkedDays = {};
@@ -48,7 +55,7 @@ export function HabitTracker() {
       .finally(() => {
         setIsLoaded(true);
       });
-  }, []);
+  }, [user]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
