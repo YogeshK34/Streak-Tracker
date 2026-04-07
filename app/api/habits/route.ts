@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     // Get the session from the authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
+      console.error("❌ No auth header");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,8 +26,11 @@ export async function GET(req: NextRequest) {
     } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
+      console.error("❌ Token validation failed:", userError?.message);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.log("✅ Auth verified for user:", user.id);
 
     // Get habit entries for this user
     const { data, error } = await supabase
@@ -36,10 +40,17 @@ export async function GET(req: NextRequest) {
       .order("tracked_date", { ascending: true });
 
     if (error) {
+      console.error("❌ Query error:", error.message, error.details);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data: data ?? [] }, { status: 200 });
+    // Map tracked_date to date for consistency
+    const mappedData = (data ?? []).map((item: any) => ({
+      date: item.tracked_date,
+    }));
+
+    console.log("✅ Returning", mappedData.length, "habits for user", user.id);
+    return NextResponse.json({ data: mappedData }, { status: 200 });
   } catch (error) {
     console.error("Habit fetch error:", error);
     return NextResponse.json(
@@ -53,6 +64,7 @@ export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
+      console.error("❌ No auth header on POST");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -63,13 +75,17 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
+      console.error("❌ POST Token validation failed:", userError?.message);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
     const { date, marked } = body;
 
+    console.log(`📝 POST request: user=${user.id}, date=${date}, marked=${marked}`);
+
     if (!date || typeof marked !== "boolean") {
+      console.error("❌ Invalid body:", { date, marked });
       return NextResponse.json(
         { error: "Date and marked flag are required" },
         { status: 400 }
@@ -77,31 +93,37 @@ export async function POST(req: NextRequest) {
     }
 
     if (marked) {
-      const { error } = await supabase.from("habit_entries").upsert(
+      console.log(`✏️ Upserting: user_id=${user.id}, tracked_date=${date}`);
+      const { error, data: upsertData } = await supabase.from("habit_entries").upsert(
         [{ user_id: user.id, tracked_date: date }],
         { onConflict: "user_id,tracked_date" }
       );
 
       if (error) {
+        console.error("❌ Upsert failed:", error.message, error.details);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      console.log("✅ Upserted successfully:", upsertData);
       return NextResponse.json({ data: { date, marked } }, { status: 200 });
     }
 
-    const { error } = await supabase
+    console.log(`🗑️ Deleting: user_id=${user.id}, tracked_date=${date}`);
+    const { error, data: deleteData } = await supabase
       .from("habit_entries")
       .delete()
       .eq("user_id", user.id)
       .eq("tracked_date", date);
 
     if (error) {
+      console.error("❌ Delete failed:", error.message, error.details);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    console.log("✅ Deleted successfully:", deleteData);
     return NextResponse.json({ data: { date, marked } }, { status: 200 });
   } catch (error) {
-    console.error("Habit update error:", error);
+    console.error("❌ Habit update error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

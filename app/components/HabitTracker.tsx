@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { getHabitDays, setHabitDay } from "@/app/services/habit";
 import { useTheme } from "@/lib/theme-provider";
 import { useAuth } from "@/lib/auth-context";
+import { checkDatabaseSetup } from "@/lib/db-debug";
 
 interface MarkedDays {
   [key: string]: boolean;
@@ -26,7 +27,6 @@ export function HabitTracker() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [markedDays, setMarkedDays] = useState<MarkedDays>({});
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
@@ -39,6 +39,9 @@ export function HabitTracker() {
       setIsLoaded(false);
       return;
     }
+
+    // Debug: Check database schema
+    checkDatabaseSetup();
 
     getHabitDays()
       .then((res) => {
@@ -126,10 +129,14 @@ export function HabitTracker() {
   }, [markedDays]);
 
   const handleDayClick = async (day: Date) => {
-    if (isFuture(day) || isSaving) return;
+    if (isFuture(day)) return;
 
     const dateStr = format(day, "yyyy-MM-dd");
     const nextValue = !markedDays[dateStr];
+
+    console.log(`🖱️ Clicked ${dateStr}, setting to ${nextValue}`);
+
+    // Optimistic update - instant feedback
     setMarkedDays((prev) => {
       const next = { ...prev };
       if (nextValue) {
@@ -140,14 +147,17 @@ export function HabitTracker() {
       return next;
     });
 
-    setIsSaving(true);
     setError(null);
 
     try {
+      // Save in background without blocking UI
       await setHabitDay(dateStr, nextValue);
     } catch (saveError) {
       console.error("Failed to save habit day:", saveError);
-      setError("Unable to save your update. Please try again.");
+      const errorMsg = saveError instanceof Error ? saveError.message : String(saveError);
+      setError(`⚠️ Failed to save. ${errorMsg}`);
+
+      // Revert optimistic update on error
       setMarkedDays((prev) => {
         const next = { ...prev };
         if (nextValue) {
@@ -157,8 +167,6 @@ export function HabitTracker() {
         }
         return next;
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -235,7 +243,6 @@ export function HabitTracker() {
                 </div>
                 <Button
                   onClick={handleTodayClick}
-                  disabled={isSaving}
                   variant="ghost"
                   size="sm"
                   className="gap-2"
@@ -297,7 +304,7 @@ export function HabitTracker() {
                     key={dateStr}
                     type="button"
                     onClick={() => handleDayClick(day)}
-                    disabled={isFutureDate || isSaving}
+                    disabled={isFutureDate}
                     className={`aspect-square rounded-3xl border p-0.5 transition-all duration-300 ${
                       isFutureDate
                         ? "cursor-not-allowed bg-slate-100 dark:bg-slate-950/40 border-slate-300 dark:border-slate-800/50 opacity-35"
