@@ -116,10 +116,14 @@ export function TimeAnalysis() {
                 borderRadius: "0.5rem",
                 color: "#e2e8f0",
               }}
-              formatter={(value: number, name, props) => [
-                `${value} completions`,
-                `${props.payload.percentage}%`,
-              ]}
+              formatter={(value: any) => {
+                const count = typeof value === 'number' ? value : 0;
+                const chartItem = chartData.find((d) => d.count === count);
+                return [
+                  `${count} completions`,
+                  chartItem ? `${chartItem.percentage}%` : "0%",
+                ];
+              }}
             />
             <Bar dataKey="count" fill="#06b6d4" radius={[8, 8, 0, 0]} />
           </BarChart>

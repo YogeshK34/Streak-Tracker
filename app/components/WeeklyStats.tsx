@@ -96,7 +96,6 @@ export function WeeklyStats() {
                 border: "1px solid #475569",
                 borderRadius: "0.5rem",
               }}
-              label={{ fill: "#cbd5e1" }}
               cursor={{ fill: "rgba(34, 211, 238, 0.1)" }}
             />
             <Legend />
