@@ -40,9 +40,8 @@ export default function Home() {
             <span className="text-sm text-slate-600 dark:text-slate-400">{user.email}</span>
             <Button
               onClick={signOut}
-              variant="outline"
               size="sm"
-              className="text-slate-700 dark:text-slate-300 border-slate-300 dark:border-white/10"
+              className="bg-cyan-500 text-white hover:bg-cyan-600 dark:bg-cyan-600 dark:hover:bg-cyan-700 shadow-lg shadow-cyan-500/20"
             >
               Sign Out
             </Button>
