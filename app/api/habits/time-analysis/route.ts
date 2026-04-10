@@ -29,11 +29,12 @@ export async function GET(req: NextRequest) {
 
     console.log("📥 Fetching time analysis for user:", user.id);
 
-    // Get hour distribution of completions
+    // Get completion hours from habit entries
     const { data, error } = await supabase
-      .from("habit_completion_times")
+      .from("habit_entries")
       .select("completion_hour")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .not("completion_hour", "is", null);
 
     if (error) {
       console.error("❌ Time analysis query error:", error.message, error.details);
@@ -52,7 +53,9 @@ export async function GET(req: NextRequest) {
     }
 
     (data ?? []).forEach((entry: any) => {
-      distribution[entry.completion_hour]++;
+      if (entry.completion_hour !== null) {
+        distribution[entry.completion_hour]++;
+      }
     });
 
     // Convert to array format

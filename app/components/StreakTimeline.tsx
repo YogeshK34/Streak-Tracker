@@ -92,7 +92,7 @@ export function StreakTimeline() {
                     </div>
                   </div>
                   <div className="text-sm text-slate-600 dark:text-slate-300">
-                    {Math.ceil((new Date(streak.end_date).getTime() - new Date(streak.start_date).getTime()) / (1000 * 60 * 60 * 24))} consecutive days
+                    {streak.length} consecutive days
                   </div>
                 </div>
 

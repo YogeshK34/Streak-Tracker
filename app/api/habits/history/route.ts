@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { calculateStreaksBetween } from "@/lib/streak-calculator";
+import { format, startOfDay } from "date-fns";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -29,25 +31,32 @@ export async function GET(req: NextRequest) {
 
     console.log("📥 Fetching streak history for user:", user.id);
 
-    // Get all past streaks for this user, sorted by end_date descending (most recent first)
-    const { data, error } = await supabase
-      .from("streak_history")
-      .select("start_date, end_date, length")
+    // Get all marked habit entries for this user
+    const { data: habits, error } = await supabase
+      .from("habit_entries")
+      .select("tracked_date")
       .eq("user_id", user.id)
-      .order("end_date", { ascending: false })
-      .limit(100);
+      .order("tracked_date", { ascending: true });
 
     if (error) {
-      console.error("❌ Streak history query error:", error.message, error.details);
-      // Return empty array instead of error to prevent UI failures
+      console.error("❌ Habit entries query error:", error.message, error.details);
       return NextResponse.json({ data: [] }, { status: 200 });
     }
 
-    console.log("✅ Returning", data?.length || 0, "past streaks for user", user.id);
-    return NextResponse.json({ data: data ?? [] }, { status: 200 });
+    const markedDays = (habits ?? []).map((h: any) => h.tracked_date);
+    const allStreaks = calculateStreaksBetween(markedDays);
+
+    // Filter out the current active streak (the one that includes today)
+    const today = format(startOfDay(new Date()), "yyyy-MM-dd");
+    const completedStreaks = allStreaks.filter((streak) => streak.end_date !== today);
+
+    // Sort by end_date descending (most recent first)
+    completedStreaks.sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime());
+
+    console.log("✅ Returning", completedStreaks.length, "completed streaks for user", user.id);
+    return NextResponse.json({ data: completedStreaks }, { status: 200 });
   } catch (error) {
     console.error("Streak history fetch error:", error);
-    // Return empty array on error to prevent UI failures
     return NextResponse.json({ data: [] }, { status: 200 });
   }
 }

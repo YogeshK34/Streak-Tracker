@@ -111,8 +111,13 @@ export async function POST(req: NextRequest) {
 
     if (marked) {
       console.log(`✏️ Upserting: user_id=${user.id}, tracked_date=${date}`);
+
+      // Store completion time (current hour)
+      const now = new Date();
+      const completionHour = now.getHours();
+
       const { error, data: upsertData } = await supabase.from("habit_entries").upsert(
-        [{ user_id: user.id, tracked_date: date }],
+        [{ user_id: user.id, tracked_date: date, completion_hour: completionHour }],
         { onConflict: "user_id,tracked_date" }
       );
 
@@ -121,19 +126,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      // Store completion time (current hour)
-      const now = new Date();
-      const completionHour = now.getHours();
       console.log(`📝 Recording completion time: hour=${completionHour}`);
-
-      const { error: timeError } = await supabase.from("habit_completion_times").upsert(
-        [{ user_id: user.id, habit_date: date, completion_hour: completionHour }],
-        { onConflict: "user_id,habit_date" }
-      );
-
-      if (timeError) {
-        console.warn("⚠️ Failed to save completion time:", timeError.message);
-      }
 
       // Calculate new marked days for streak detection
       const newMarkedDays = [...oldMarkedDays, date].sort();

@@ -93,25 +93,13 @@ export function HabitTracker() {
     : 0;
 
   const currentStreak = useMemo(() => {
-    // Find the most recent marked date (going backwards from today)
-    let checkDate = today;
-    let mostRecentMarked: Date | null = null;
+    // Current streak must include today - if today is not marked, streak is 0
+    const todayStr = format(today, "yyyy-MM-dd");
+    if (!markedDays[todayStr]) return 0;
 
-    // Look back up to 365 days to find most recent marked date
-    for (let i = 0; i < 365; i++) {
-      const dateStr = format(checkDate, "yyyy-MM-dd");
-      if (markedDays[dateStr]) {
-        mostRecentMarked = checkDate;
-        break;
-      }
-      checkDate = subDays(checkDate, 1);
-    }
-
-    if (!mostRecentMarked) return 0; // No marked days found
-
-    // Count consecutive marked days backwards from the most recent marked date
+    // Count consecutive marked days backwards from today
     let streak = 0;
-    let currentDate = mostRecentMarked;
+    let currentDate = today;
 
     while (true) {
       const dateStr = format(currentDate, "yyyy-MM-dd");
@@ -154,7 +142,7 @@ export function HabitTracker() {
   }, [markedDays]);
 
   const handleDayClick = async (day: Date) => {
-    if (isFuture(day)) return;
+    if (isFuture(day) || !isToday(day)) return; // Only allow marking today
 
     const dateStr = format(day, "yyyy-MM-dd");
     const nextValue = !markedDays[dateStr];
