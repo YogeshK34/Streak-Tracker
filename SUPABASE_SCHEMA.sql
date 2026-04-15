@@ -4,6 +4,7 @@ create table if not exists habit_entries (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   tracked_date date not null,
+  completion_hour int check (completion_hour >= 0 and completion_hour <= 23),
   created_at timestamptz not null default now(),
   unique(user_id, tracked_date)
 );

@@ -142,7 +142,11 @@ export function HabitTracker() {
   }, [markedDays]);
 
   const handleDayClick = async (day: Date) => {
-    if (isFuture(day) || !isToday(day)) return; // Only allow marking today
+    // Allow marking today and up to 2 days in the past
+    if (isFuture(day)) return;
+
+    const daysInPast = Math.floor((today.getTime() - startOfDay(day).getTime()) / (1000 * 60 * 60 * 24));
+    if (daysInPast > 2) return; // Only allow last 2 days + today
 
     const dateStr = format(day, "yyyy-MM-dd");
     const nextValue = !markedDays[dateStr];
@@ -383,15 +387,17 @@ export function HabitTracker() {
                       const isMarked = markedDays[dateStr];
                       const isTodayDate = isToday(day);
                       const isFutureDate = isFuture(day);
+                      const daysInPast = Math.floor((today.getTime() - startOfDay(day).getTime()) / (1000 * 60 * 60 * 24));
+                      const isClickable = !isFutureDate && daysInPast <= 2;
 
                       return (
                         <button
                           key={dateStr}
                           type="button"
                           onClick={() => handleDayClick(day)}
-                          disabled={isFutureDate}
+                          disabled={!isClickable}
                           className={`aspect-square rounded-3xl border p-0.5 transition-all duration-300 ${
-                            isFutureDate
+                            !isClickable
                               ? "cursor-not-allowed bg-slate-100 dark:bg-slate-950/40 border-slate-300 dark:border-slate-800/50 opacity-35"
                               : "bg-white dark:bg-slate-950/90 border-slate-300 dark:border-slate-700 hover:border-cyan-400 dark:hover:border-cyan-400/50 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.3)]"
                           } ${
