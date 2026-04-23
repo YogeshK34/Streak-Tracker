@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getHabitDays, setHabitDay, exportHabitData } from "@/app/services/habit";
+import { getLeetCodeProblems } from "@/app/services/leetcode";
 import { useTheme } from "@/lib/theme-provider";
 import { useAuth } from "@/lib/auth-context";
 import { checkDatabaseSetup } from "@/lib/db-debug";
@@ -24,12 +25,13 @@ import { StreakTimeline } from "./StreakTimeline";
 import { WeeklyStats } from "./WeeklyStats";
 import { TimeAnalysis } from "./TimeAnalysis";
 import { Achievements } from "./Achievements";
+import { LeetCodeTracker } from "./LeetCodeTracker";
 
 interface MarkedDays {
   [key: string]: boolean;
 }
 
-type TabType = "calendar" | "history" | "weekly" | "time" | "achievements";
+type TabType = "calendar" | "history" | "weekly" | "time" | "achievements" | "leetcode";
 
 export function HabitTracker() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -38,6 +40,8 @@ export function HabitTracker() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("calendar");
   const [exporting, setExporting] = useState(false);
+  const [leetcodeProblemCount, setLeetcodeProblemCount] = useState(0);
+  const [leetcodeProblemsByDate, setLeetcodeProblemsByDate] = useState<Record<string, number>>({});
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
 
@@ -67,6 +71,24 @@ export function HabitTracker() {
       })
       .finally(() => {
         setIsLoaded(true);
+      });
+
+    // Load LeetCode problem count
+    getLeetCodeProblems()
+      .then((res) => {
+        setLeetcodeProblemCount(res.data.length);
+
+        // Create a map of dates to problem counts
+        const problemsByDate: Record<string, number> = {};
+        res.data.forEach((problem) => {
+          const date = problem.problem_date;
+          problemsByDate[date] = (problemsByDate[date] || 0) + 1;
+        });
+        setLeetcodeProblemsByDate(problemsByDate);
+      })
+      .catch((err) => {
+        console.error("Failed to load LeetCode problems count:", err);
+        // Don't show error for this, it's optional
       });
   }, [user]);
 
@@ -144,11 +166,11 @@ export function HabitTracker() {
   }, [markedDays]);
 
   const handleDayClick = async (day: Date) => {
-    // Allow marking today and up to 2 days in the past
+    // Allow marking only today (not past days or future days)
     if (isFuture(day)) return;
 
     const daysInPast = Math.floor((today.getTime() - startOfDay(day).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysInPast > 2) return; // Only allow last 2 days + today
+    if (daysInPast > 0) return; // Only allow today (daysInPast === 0)
 
     const dateStr = format(day, "yyyy-MM-dd");
     const nextValue = !markedDays[dateStr];
@@ -231,6 +253,7 @@ export function HabitTracker() {
     { id: "history", label: "Streak History", icon: <Flame className="w-4 h-4" /> },
     { id: "weekly", label: "Weekly Stats", icon: "📊" },
     { id: "time", label: "Best Time", icon: "⏰" },
+    { id: "leetcode", label: "LeetCode", icon: "💻" },
     { id: "achievements", label: "Achievements", icon: "🏆" },
   ];
 
@@ -266,7 +289,7 @@ export function HabitTracker() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-4">
             <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
               <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Current streak</p>
               <p className="mt-3 text-3xl font-semibold text-black dark:text-white">{currentStreak}</p>
@@ -279,11 +302,15 @@ export function HabitTracker() {
               <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Monthly progress</p>
               <p className="mt-3 text-3xl font-semibold text-black dark:text-white">{completionPercent}%</p>
             </div>
+            <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
+              <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">LeetCode</p>
+              <p className="mt-3 text-3xl font-semibold text-black dark:text-white">{leetcodeProblemCount}</p>
+            </div>
           </div>
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 gap-0 bg-transparent rounded-none h-auto p-0">
+            <TabsList className="grid w-full grid-cols-6 gap-0 bg-transparent rounded-none h-auto p-0">
               {tabsConfig.map((tab) => (
                 <TabsTrigger
                   key={tab.id}
@@ -370,7 +397,8 @@ export function HabitTracker() {
                         const isTodayDate = isToday(day);
                         const isFutureDate = isFuture(day);
                         const daysInPast = Math.floor((today.getTime() - startOfDay(day).getTime()) / (1000 * 60 * 60 * 24));
-                        const isClickable = !isFutureDate && daysInPast <= 2;
+                        const isClickable = !isFutureDate && daysInPast === 0;
+                        const leetcodeCount = leetcodeProblemsByDate[dateStr] || 0;
 
                         return (
                           <button
@@ -386,8 +414,13 @@ export function HabitTracker() {
                               isMarked ? "bg-gradient-to-br from-cyan-500 to-emerald-500 border-cyan-400/50 dark:border-cyan-400/50 shadow-lg shadow-cyan-500/25" : "text-slate-700 dark:text-slate-200"
                             } ${isTodayDate ? "ring-2 ring-cyan-300/70" : ""}`}
                           >
-                            <span className="relative flex h-full w-full items-center justify-center text-sm font-semibold">
+                            <span className="relative flex h-full w-full flex-col items-center justify-center text-sm font-semibold">
                               <span className={isMarked ? "text-white" : ""}>{format(day, "d")}</span>
+                              {leetcodeCount > 0 && (
+                                <span className={`text-xs mt-0.5 ${isMarked ? "text-cyan-100" : "text-cyan-600 dark:text-cyan-400"}`}>
+                                  💻 {leetcodeCount}
+                                </span>
+                              )}
                               {isMarked && (
                                 <svg
                                   className="absolute inset-0"
@@ -444,6 +477,10 @@ export function HabitTracker() {
 
             <TabsContent value="time" className="mt-6 min-h-[400px]">
               <TimeAnalysis />
+            </TabsContent>
+
+            <TabsContent value="leetcode" className="mt-6 min-h-[400px]">
+              <LeetCodeTracker />
             </TabsContent>
 
             <TabsContent value="achievements" className="mt-6 min-h-[400px]">

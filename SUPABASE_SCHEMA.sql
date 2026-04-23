@@ -46,3 +46,36 @@ create table if not exists achievements (
 );
 
 create index if not exists achievements_user_id_idx on achievements(user_id);
+
+-- LeetCode problems tracker: stores problems solved with notes
+create table if not exists leetcode_problems (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  problem_date date not null,
+  problem_name text not null,
+  description text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists leetcode_problems_user_id_idx on leetcode_problems(user_id);
+create index if not exists leetcode_problems_user_date_idx on leetcode_problems(user_id, problem_date desc);
+
+-- RLS Policies for leetcode_problems
+alter table leetcode_problems enable row level security;
+
+create policy "Users can view own leetcode problems"
+  on leetcode_problems for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own leetcode problems"
+  on leetcode_problems for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own leetcode problems"
+  on leetcode_problems for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users can delete own leetcode problems"
+  on leetcode_problems for delete
+  using (auth.uid() = user_id);
