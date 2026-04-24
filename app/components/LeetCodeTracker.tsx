@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Trash2, Plus, Edit2, X } from "lucide-react";
+import { Trash2, Plus, Edit2, Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,12 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [selectedProblem, setSelectedProblem] = useState<LeetCodeProblem | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [startDateCalendarOpen, setStartDateCalendarOpen] = useState(false);
+  const [endDateCalendarOpen, setEndDateCalendarOpen] = useState(false);
   const itemsPerPage = 5;
   const [formData, setFormData] = useState({
     problem_date: format(new Date(), "yyyy-MM-dd"),
@@ -211,11 +218,51 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     }
   };
 
+  // Filter helper functions
+  const getFilteredProblems = () => {
+    let filtered = problems;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((p) =>
+        p.problem_name.toLowerCase().includes(query) ||
+        (p.description && p.description.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply date range filter
+    if (filterStartDate || filterEndDate) {
+      filtered = filtered.filter((p) => {
+        const problemDate = new Date(p.problem_date);
+        if (filterStartDate && problemDate < filterStartDate) return false;
+        if (filterEndDate) {
+          const endDate = new Date(filterEndDate);
+          endDate.setHours(23, 59, 59, 999);
+          if (problemDate > endDate) return false;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterStartDate(null);
+    setFilterEndDate(null);
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = searchQuery.trim() !== "" || filterStartDate !== null || filterEndDate !== null;
+
   // Pagination logic
-  const totalPages = Math.ceil(problems.length / itemsPerPage);
+  const filteredProblems = getFilteredProblems();
+  const totalPages = Math.ceil(filteredProblems.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedProblems = problems.slice(startIndex, endIndex);
+  const paginatedProblems = filteredProblems.slice(startIndex, endIndex);
 
   if (!isLoaded) {
     return <div className="text-center p-8 text-slate-600 dark:text-slate-400">Loading LeetCode problems...</div>;
@@ -248,6 +295,185 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          )}
+
+          {/* Search and Filter Section */}
+          {!isAddingProblem && problems.length > 0 && (
+            <div className="space-y-3 sm:space-y-4">
+              {/* Search Bar */}
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search problems..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-9 text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                    aria-label="Search problems by name or description"
+                  />
+                </div>
+                <Button
+                  onClick={() => setShowFilters(!showFilters)}
+                  variant="outline"
+                  className="gap-2 text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filters</span>
+                  {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </div>
+
+              {/* Active Filters Display */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2 items-center">
+                  {searchQuery.trim() && (
+                    <Badge variant="secondary" className="gap-1">
+                      Search: {searchQuery}
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 hover:text-slate-600"
+                        aria-label="Clear search"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {filterStartDate && (
+                    <Badge variant="secondary" className="gap-1">
+                      From: {format(filterStartDate, "MMM d")}
+                      <button
+                        onClick={() => {
+                          setFilterStartDate(null);
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 hover:text-slate-600"
+                        aria-label="Clear start date filter"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {filterEndDate && (
+                    <Badge variant="secondary" className="gap-1">
+                      To: {format(filterEndDate, "MMM d")}
+                      <button
+                        onClick={() => {
+                          setFilterEndDate(null);
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 hover:text-slate-600"
+                        aria-label="Clear end date filter"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {hasActiveFilters && (
+                    <Button
+                      onClick={clearFilters}
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-auto py-1"
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Filter Panel */}
+              {showFilters && (
+                <div className="p-3 sm:p-4 rounded-lg border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-slate-800/50 space-y-3 sm:space-y-4">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="start-date" className="text-xs sm:text-sm">
+                        Start Date
+                      </Label>
+                      <Popover open={startDateCalendarOpen} onOpenChange={setStartDateCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="start-date"
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal text-xs sm:text-sm py-2 h-auto bg-white dark:bg-slate-950/50"
+                          >
+                            {filterStartDate ? format(filterStartDate, "MMM d, yyyy") : "Select start date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={filterStartDate || undefined}
+                            onSelect={(date) => {
+                              setFilterStartDate(date || null);
+                              setStartDateCalendarOpen(false);
+                              setCurrentPage(1);
+                            }}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="end-date" className="text-xs sm:text-sm">
+                        End Date
+                      </Label>
+                      <Popover open={endDateCalendarOpen} onOpenChange={setEndDateCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="end-date"
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal text-xs sm:text-sm py-2 h-auto bg-white dark:bg-slate-950/50"
+                          >
+                            {filterEndDate ? format(filterEndDate, "MMM d, yyyy") : "Select end date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={filterEndDate || undefined}
+                            onSelect={(date) => {
+                              setFilterEndDate(date || null);
+                              setEndDateCalendarOpen(false);
+                              setCurrentPage(1);
+                            }}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      onClick={() => setShowFilters(false)}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Result Count */}
+          {problems.length > 0 && (
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              Showing {paginatedProblems.length} of {filteredProblems.length} problems
+              {hasActiveFilters && ` (filtered from ${problems.length} total)`}
+            </p>
           )}
 
           {/* Add/Edit Form */}
@@ -340,6 +566,10 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
           {problems.length === 0 ? (
             <div className="text-center py-6 sm:py-8 text-slate-500 dark:text-slate-400">
               <p className="text-xs sm:text-sm">No problems added yet. Start tracking your LeetCode progress!</p>
+            </div>
+          ) : filteredProblems.length === 0 ? (
+            <div className="text-center py-6 sm:py-8 text-slate-500 dark:text-slate-400">
+              <p className="text-xs sm:text-sm">No problems match your search or filters. Try adjusting them.</p>
             </div>
           ) : (
             <>
@@ -487,28 +717,20 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       </Card>
 
       <Dialog open={detailsDialogOpen} onOpenChange={handleCloseDetails}>
-        <DialogContent className="max-w-md sm:max-w-lg">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
-            <DialogTitle className="text-lg sm:text-xl font-semibold flex-1 pr-4">
+            <DialogTitle className="text-base sm:text-lg md:text-xl font-semibold flex-1 pr-2 break-words">
               Problem Details
             </DialogTitle>
-            <Button
-              onClick={handleCloseDetails}
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-            >
-              {/* <X className="h-4 w-4" /> */}
-            </Button>
           </DialogHeader>
 
           {selectedProblem && (
-            <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-3 sm:space-y-4 md:space-y-5 pr-0">
               <div>
                 <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 mb-1">
                   Problem Name
                 </p>
-                <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 break-words">
+                <p className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 break-words">
                   {selectedProblem.problem_name}
                 </p>
               </div>
@@ -517,7 +739,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                 <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 mb-1">
                   Date
                 </p>
-                <p className="text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                <p className="text-xs sm:text-sm md:text-base text-slate-900 dark:text-slate-100">
                   {format(new Date(selectedProblem.problem_date), "MMMM d, yyyy")}
                 </p>
               </div>
@@ -527,7 +749,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                   <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 mb-2">
                     Description / Approach
                   </p>
-                  <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words">
+                  <p className="text-xs sm:text-sm md:text-base text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words max-h-[40vh] overflow-y-auto">
                     {selectedProblem.description}
                   </p>
                 </div>
