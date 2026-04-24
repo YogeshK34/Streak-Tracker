@@ -100,6 +100,15 @@ export function HabitTracker() {
       });
   }, [user]);
 
+  // Update browser tab title with LeetCode count
+  useEffect(() => {
+    if (leetcodeProblemCount > 0) {
+      document.title = `Habit Tracker (${leetcodeProblemCount} 💻)`;
+    } else {
+      document.title = "Habit Tracker";
+    }
+  }, [leetcodeProblemCount]);
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -500,7 +509,7 @@ export function HabitTracker() {
             </TabsContent>
 
             <TabsContent value="leetcode" className="mt-6 min-h-[400px]">
-              <LeetCodeTracker />
+              <LeetCodeTracker onProblemCountChange={setLeetcodeProblemCount} />
             </TabsContent>
 
             <TabsContent value="achievements" className="mt-6 min-h-[400px]">

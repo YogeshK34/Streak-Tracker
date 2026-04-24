@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Trash2, Plus, Edit2 } from "lucide-react";
+import { Trash2, Plus, Edit2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -33,7 +39,11 @@ import {
 } from "@/app/services/leetcode";
 import { useAuth } from "@/lib/auth-context";
 
-export function LeetCodeTracker() {
+interface LeetCodeTrackerProps {
+  onProblemCountChange?: (count: number) => void;
+}
+
+export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps = {}) {
   const [problems, setProblems] = useState<LeetCodeProblem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +54,8 @@ export function LeetCodeTracker() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedProblem, setSelectedProblem] = useState<LeetCodeProblem | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const itemsPerPage = 5;
   const [formData, setFormData] = useState({
     problem_date: format(new Date(), "yyyy-MM-dd"),
@@ -60,6 +72,11 @@ export function LeetCodeTracker() {
 
     loadProblems();
   }, [user]);
+
+  // Notify parent when problems count changes
+  useEffect(() => {
+    onProblemCountChange?.(problems.length);
+  }, [problems.length, onProblemCountChange]);
 
   const loadProblems = async () => {
     try {
@@ -171,6 +188,16 @@ export function LeetCodeTracker() {
       problem_name: "",
       description: "",
     });
+  };
+
+  const handleOpenDetails = (problem: LeetCodeProblem) => {
+    setSelectedProblem(problem);
+    setDetailsDialogOpen(true);
+  };
+
+  const handleCloseDetails = () => {
+    setDetailsDialogOpen(false);
+    setSelectedProblem(null);
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -336,7 +363,10 @@ export function LeetCodeTracker() {
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-900 dark:text-slate-100">
                           {format(new Date(problem.problem_date), "MMM d, yyyy")}
                         </td>
-                        <td className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-slate-900 dark:text-slate-100">
+                        <td
+                          onClick={() => handleOpenDetails(problem)}
+                          className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-slate-900 dark:text-slate-100 cursor-pointer hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
+                        >
                           {problem.problem_name}
                         </td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">
@@ -375,18 +405,19 @@ export function LeetCodeTracker() {
                 {paginatedProblems.map((problem) => (
                   <div
                     key={problem.id}
-                    className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4 bg-white dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4 bg-white dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                    onClick={() => handleOpenDetails(problem)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex-1">
                         <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mb-0.5">
                           {format(new Date(problem.problem_date), "MMM d, yyyy")}
                         </p>
-                        <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 break-words">
+                        <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 break-words hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors">
                           {problem.problem_name}
                         </p>
                       </div>
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         <Button
                           onClick={() => handleEdit(problem)}
                           variant="ghost"
@@ -454,6 +485,71 @@ export function LeetCodeTracker() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={detailsDialogOpen} onOpenChange={handleCloseDetails}>
+        <DialogContent className="max-w-md sm:max-w-lg">
+          <DialogHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+            <DialogTitle className="text-lg sm:text-xl font-semibold flex-1 pr-4">
+              Problem Details
+            </DialogTitle>
+            <Button
+              onClick={handleCloseDetails}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+            >
+              {/* <X className="h-4 w-4" /> */}
+            </Button>
+          </DialogHeader>
+
+          {selectedProblem && (
+            <div className="space-y-4 sm:space-y-5">
+              <div>
+                <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 mb-1">
+                  Problem Name
+                </p>
+                <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 break-words">
+                  {selectedProblem.problem_name}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 mb-1">
+                  Date
+                </p>
+                <p className="text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                  {format(new Date(selectedProblem.problem_date), "MMMM d, yyyy")}
+                </p>
+              </div>
+
+              {selectedProblem.description && (
+                <div>
+                  <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 mb-2">
+                    Description / Approach
+                  </p>
+                  <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words">
+                    {selectedProblem.description}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2 justify-end">
+                <Button
+                  onClick={() => {
+                    handleOpenDetails(selectedProblem);
+                    setDetailsDialogOpen(false);
+                    handleEdit(selectedProblem);
+                  }}
+                  className="gap-2 bg-blue-500 hover:bg-blue-600 text-white text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={deleteDialogOpen}
