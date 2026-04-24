@@ -63,29 +63,29 @@ export function WeeklyStats() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-4 text-center">
-          <p className="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Average Completion</p>
-          <p className="mt-2 text-3xl font-bold text-black dark:text-white">{avgCompletion}%</p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-3 sm:p-4 text-center">
+          <p className="text-xs sm:text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Average Completion</p>
+          <p className="mt-2 text-2xl sm:text-3xl font-bold text-black dark:text-white">{avgCompletion}%</p>
         </Card>
 
-        <Card className="border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-4 text-center">
-          <p className="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Best Week</p>
-          <p className="mt-2 text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+        <Card className="border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-3 sm:p-4 text-center">
+          <p className="text-xs sm:text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Best Week</p>
+          <p className="mt-2 text-2xl sm:text-3xl font-bold text-cyan-600 dark:text-cyan-400">
             {Math.max(...stats.map((s) => Math.round((s.days_completed / s.days_possible) * 100)))}%
           </p>
         </Card>
 
-        <Card className="border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-4 text-center">
-          <p className="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Total Weeks</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.length}</p>
+        <Card className="border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-3 sm:p-4 text-center">
+          <p className="text-xs sm:text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Total Weeks</p>
+          <p className="mt-2 text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.length}</p>
         </Card>
       </div>
 
-      <Card className="border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-black dark:text-white">Weekly Progress (Last 12 weeks)</h3>
-        <ResponsiveContainer width="100%" height={300}>
+      <Card className="border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 p-3 sm:p-6">
+        <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-black dark:text-white">Weekly Progress (Last 12 weeks)</h3>
+        <ResponsiveContainer width="100%" height={250} minHeight={250}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="week" tick={{ fill: "#94a3b8" }} />

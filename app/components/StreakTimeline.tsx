@@ -63,27 +63,27 @@ export function StreakTimeline() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {streaks.map((streak, idx) => (
         <div key={`${streak.start_date}-${streak.end_date}`} className="relative">
           {/* Timeline line */}
           {idx !== streaks.length - 1 && (
-            <div className="absolute left-6 top-16 bottom-0 w-1 bg-gradient-to-b from-slate-300 dark:from-slate-700 to-transparent" />
+            <div className="absolute left-3 sm:left-6 top-14 sm:top-16 bottom-0 w-0.5 sm:w-1 bg-gradient-to-b from-slate-300 dark:from-slate-700 to-transparent" />
           )}
 
           {/* Timeline dot and card */}
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center pt-1">
-              <div className="w-3 h-3 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/50" />
+          <div className="flex gap-2 sm:gap-4">
+            <div className="flex flex-col items-center pt-1 flex-shrink-0">
+              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/50" />
             </div>
 
-            <Card className={`flex-1 overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 p-4 shadow-lg`}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{getStreakBadge(streak.length)}</span>
-                    <div>
-                      <h3 className="font-semibold text-black dark:text-white">
+            <Card className={`flex-1 overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 p-3 sm:p-4 shadow-lg`}>
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-2 sm:gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-2 mb-2 sm:mb-0">
+                    <span className="text-xl sm:text-2xl flex-shrink-0">{getStreakBadge(streak.length)}</span>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm sm:text-base text-black dark:text-white break-words">
                         {streak.length}-day streak
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -91,15 +91,15 @@ export function StreakTimeline() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
                     {streak.length} consecutive days
                   </div>
                 </div>
 
                 {/* Streak length bar */}
-                <div className="text-right">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getStreakColor(streak.length)} flex items-center justify-center shadow-lg`}>
-                    <span className="text-2xl font-bold text-white">{streak.length}</span>
+                <div className="text-right flex-shrink-0 mt-2 sm:mt-0">
+                  <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br ${getStreakColor(streak.length)} flex items-center justify-center shadow-lg`}>
+                    <span className="text-lg sm:text-2xl font-bold text-white">{streak.length}</span>
                   </div>
                 </div>
               </div>

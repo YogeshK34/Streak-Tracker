@@ -16,6 +16,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getHabitDays, setHabitDay, exportHabitData } from "@/app/services/habit";
 import { getLeetCodeProblems } from "@/app/services/leetcode";
 import { useTheme } from "@/lib/theme-provider";
@@ -248,28 +256,28 @@ export function HabitTracker() {
     return <div className="text-center p-8 text-slate-600 dark:text-slate-400">Loading habit history...</div>;
   }
 
-  const tabsConfig: Array<{ id: TabType; label: string; icon: React.ReactNode }> = [
-    { id: "calendar", label: "Calendar", icon: <CalendarDays className="w-4 h-4" /> },
-    { id: "history", label: "Streak History", icon: <Flame className="w-4 h-4" /> },
-    { id: "weekly", label: "Weekly Stats", icon: "📊" },
-    { id: "time", label: "Best Time", icon: "⏰" },
-    { id: "leetcode", label: "LeetCode", icon: "💻" },
-    { id: "achievements", label: "Achievements", icon: "🏆" },
+  const tabsConfig: Array<{ id: TabType; label: string; icon: React.ReactNode; tooltip: string }> = [
+    { id: "calendar", label: "Calendar", icon: <CalendarDays className="w-4 h-4" />, tooltip: "View and mark your daily habits" },
+    { id: "history", label: "Streak History", icon: <Flame className="w-4 h-4" />, tooltip: "Track your past streaks" },
+    { id: "weekly", label: "Weekly Stats", icon: "📊", tooltip: "Weekly completion statistics" },
+    { id: "time", label: "Best Time", icon: "⏰", tooltip: "Your most productive hours" },
+    { id: "leetcode", label: "LeetCode", icon: "💻", tooltip: "Track LeetCode problems solved" },
+    { id: "achievements", label: "Achievements", icon: "🏆", tooltip: "Your badges and milestones" },
   ];
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 pb-16 md:px-8">
-      <Card className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-white dark:bg-slate-950/90 p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl transition-colors">
+    <section className="mx-auto w-full max-w-5xl px-2 pb-16 sm:px-4 md:px-8">
+      <Card className="relative overflow-hidden rounded-xl sm:rounded-[2.5rem] border border-white/10 bg-white dark:bg-slate-950/90 p-4 sm:p-6 md:p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl transition-colors">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(250,204,21,0.14),_transparent_28%)]" />
-        <CardContent className="relative space-y-8 px-0">
+        <CardContent className="relative space-y-6 sm:space-y-8 px-0">
           {/* Header */}
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-200 ring-1 ring-cyan-300/20 mb-4">
-                <Sparkles className="h-4 w-4" />
+              <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-cyan-200 ring-1 ring-cyan-300/20 mb-2 sm:mb-4">
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
                 Daily Habit Tracker
               </div>
-              <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-white sm:text-5xl">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-black dark:text-white">
                 Keep your streak glowing.
               </h1>
             </div>
@@ -277,7 +285,7 @@ export function HabitTracker() {
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
               variant="ghost"
               size="icon"
-              className="rounded-full"
+              className="rounded-full flex-shrink-0"
               title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             >
               {theme === "light" ? (
@@ -289,107 +297,119 @@ export function HabitTracker() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
-              <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Current streak</p>
-              <p className="mt-3 text-3xl font-semibold text-black dark:text-white">{currentStreak}</p>
+          <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
+            <div className="rounded-xl sm:rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-3 sm:p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Current streak</p>
+              <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-black dark:text-white">{currentStreak}</p>
             </div>
-            <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
-              <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Longest streak</p>
-              <p className="mt-3 text-3xl font-semibold text-black dark:text-white">{longestStreak}</p>
+            <div className="rounded-xl sm:rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-3 sm:p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Longest streak</p>
+              <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-black dark:text-white">{longestStreak}</p>
             </div>
-            <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
-              <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Monthly progress</p>
-              <p className="mt-3 text-3xl font-semibold text-black dark:text-white">{completionPercent}%</p>
+            <div className="rounded-xl sm:rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-3 sm:p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Monthly progress</p>
+              <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-black dark:text-white">{completionPercent}%</p>
             </div>
-            <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
-              <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">LeetCode</p>
-              <p className="mt-3 text-3xl font-semibold text-black dark:text-white">{leetcodeProblemCount}</p>
+            <div className="rounded-xl sm:rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/80 p-3 sm:p-5 text-center shadow-lg shadow-slate-200/50 dark:shadow-slate-950/20 transition hover:-translate-y-1">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">LeetCode</p>
+              <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-black dark:text-white">{leetcodeProblemCount}</p>
             </div>
           </div>
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 gap-0 bg-transparent rounded-none h-auto p-0">
-              {tabsConfig.map((tab) => (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="!rounded-none !border-0 !bg-transparent !shadow-none py-4 px-2 text-slate-600 dark:text-slate-400 data-[state=active]:text-cyan-500 dark:data-[state=active]:text-cyan-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-cyan-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:origin-left"
-                >
-                  {typeof tab.icon === "string" ? <span className="text-lg">{tab.icon}</span> : tab.icon}
-                  <span className="hidden sm:inline ml-2">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <ScrollArea className="w-full">
+              <TabsList className="inline-flex gap-0 bg-transparent rounded-none h-auto p-0 w-full">
+                <TooltipProvider>
+                  {tabsConfig.map((tab) => (
+                    <Tooltip key={tab.id}>
+                      <TooltipTrigger asChild>
+                        <TabsTrigger
+                          value={tab.id}
+                          className="!rounded-none !border-0 !bg-transparent !shadow-none py-2 sm:py-4 px-1.5 sm:px-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 data-[state=active]:text-cyan-500 dark:data-[state=active]:text-cyan-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-cyan-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:origin-left whitespace-nowrap flex-shrink-0"
+                        >
+                          {typeof tab.icon === "string" ? <span className="text-base sm:text-lg">{tab.icon}</span> : tab.icon}
+                          <span className="hidden lg:inline ml-1 sm:ml-2">{tab.label}</span>
+                        </TabsTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs sm:text-sm">
+                        {tab.tooltip}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+              </TabsList>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
             {/* Calendar Tab */}
-            <TabsContent value="calendar" className="mt-6 min-h-[400px]">
-              <div className="space-y-6">
-                <div className="rounded-3xl border border-cyan-300/20 dark:border-cyan-300/10 bg-cyan-50 dark:bg-cyan-500/10 p-4 text-sm text-cyan-900 dark:text-cyan-100 ring-1 ring-cyan-200/30 dark:ring-cyan-200/20 transition-colors">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
+            <TabsContent value="calendar" className="mt-4 sm:mt-6 min-h-[400px]">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="rounded-xl sm:rounded-3xl border border-cyan-300/20 dark:border-cyan-300/10 bg-cyan-50 dark:bg-cyan-500/10 p-3 sm:p-4 text-xs sm:text-sm text-cyan-900 dark:text-cyan-100 ring-1 ring-cyan-200/30 dark:ring-cyan-200/20 transition-colors">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
-                      <p className="font-semibold text-cyan-950 dark:text-white">{trackedDays} days tracked</p>
-                      <p className="text-cyan-700 dark:text-slate-300">Out of {daysThisMonth} days so far this month.</p>
+                      <p className="font-semibold text-cyan-950 dark:text-white text-sm sm:text-base">{trackedDays} days tracked</p>
+                      <p className="text-cyan-700 dark:text-slate-300 text-xs sm:text-sm">Out of {daysThisMonth} days so far this month.</p>
                     </div>
-                    <Button onClick={handleTodayClick} variant="ghost" size="sm" className="gap-2">
-                      <Flame className="h-4 w-4" />
+                    <Button onClick={handleTodayClick} variant="ghost" size="sm" className="gap-2 text-xs sm:text-sm whitespace-nowrap">
+                      <Flame className="h-3 w-3 sm:h-4 sm:w-4" />
                       {markedDays[todayKey] ? "Unmark today" : "Mark today"}
                     </Button>
                   </div>
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-cyan-200/30 dark:bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-[width] duration-500"
-                      style={{ width: `${completionPercent}%` }}
+                  <div className="mt-3 sm:mt-4">
+                    <Progress
+                      value={completionPercent}
+                      className="h-2 bg-cyan-200/30 dark:bg-white/10"
                     />
                   </div>
                 </div>
 
-                <Card className="rounded-[2rem] border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-900/95 shadow-2xl shadow-slate-200/50 dark:shadow-slate-950/30 transition-colors">
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                <Card className="rounded-xl sm:rounded-[2rem] border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-900/95 shadow-2xl shadow-slate-200/50 dark:shadow-slate-950/30 transition-colors">
+                  <CardHeader className="p-3 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
                       <div>
-                        <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Month view</p>
-                        <CardTitle className="text-2xl font-semibold text-black dark:text-white">{format(currentMonth, "MMMM yyyy")}</CardTitle>
+                        <p className="text-xs uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Month view</p>
+                        <CardTitle className="text-lg sm:text-2xl font-semibold text-black dark:text-white">{format(currentMonth, "MMMM yyyy")}</CardTitle>
                       </div>
-                      <div className="inline-flex items-center gap-2 rounded-full bg-slate-200 dark:bg-slate-800/80 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 ring-1 ring-slate-300 dark:ring-white/10">
-                        <CalendarDays className="h-4 w-4 text-cyan-500 dark:text-cyan-300" />
+                      <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-slate-200 dark:bg-slate-800/80 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 ring-1 ring-slate-300 dark:ring-white/10 flex-shrink-0">
+                        <CalendarDays className="h-3 w-3 sm:h-4 sm:w-4 text-cyan-500 dark:text-cyan-300" />
                         {daysInMonth.length} days
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={goToPreviousMonth} title="Previous month">
+                        <Button variant="ghost" size="sm" onClick={goToPreviousMonth} title="Previous month" className="h-8 w-8 sm:h-10 sm:w-10 p-0">
                           <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={goToNextMonth} title="Next month">
+                        <Button variant="ghost" size="sm" onClick={goToNextMonth} title="Next month" className="h-8 w-8 sm:h-10 sm:w-10 p-0">
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="flex gap-2">
-                        <Button onClick={() => handleExport("csv")} disabled={exporting} size="sm" variant="outline" className="gap-2">
-                          <Download className="h-4 w-4" />
-                          CSV
+                      <div className="flex gap-1 sm:gap-2">
+                        <Button onClick={() => handleExport("csv")} disabled={exporting} size="sm" variant="outline" className="gap-2 text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-3">
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">CSV</span>
                         </Button>
-                        <Button onClick={() => handleExport("json")} disabled={exporting} size="sm" variant="outline" className="gap-2">
-                          <Download className="h-4 w-4" />
-                          JSON
+                        <Button onClick={() => handleExport("json")} disabled={exporting} size="sm" variant="outline" className="gap-2 text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-3">
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">JSON</span>
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-7 gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-500 mb-3">
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-500 mb-2 sm:mb-3">
                       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                        <div key={day} className="flex h-8 items-center justify-center">
-                          {day}
+                        <div key={day} className="flex h-6 sm:h-8 items-center justify-center text-xs">
+                          <span className="hidden sm:inline">{day}</span>
+                          <span className="sm:hidden">{day[0]}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="grid grid-cols-7 gap-2">
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
                       {calendarDays.map((day, index) => {
                         if (!day) {
-                          return <div key={`empty-${index}`} className="aspect-square rounded-3xl bg-slate-100 dark:bg-slate-950/50" />;
+                          return <div key={`empty-${index}`} className="aspect-square rounded-lg sm:rounded-3xl bg-slate-100 dark:bg-slate-950/50" />;
                         }
 
                         const dateStr = format(day, "yyyy-MM-dd");
@@ -406,7 +426,7 @@ export function HabitTracker() {
                             type="button"
                             onClick={() => handleDayClick(day)}
                             disabled={!isClickable}
-                            className={`aspect-square rounded-3xl border p-0.5 transition-all duration-300 ${
+                            className={`aspect-square rounded-lg sm:rounded-3xl border p-0.5 transition-all duration-300 text-xs sm:text-sm font-semibold ${
                               !isClickable
                                 ? "cursor-not-allowed bg-slate-100 dark:bg-slate-950/40 border-slate-300 dark:border-slate-800/50 opacity-35"
                                 : "bg-white dark:bg-slate-950/90 border-slate-300 dark:border-slate-700 hover:border-cyan-400 dark:hover:border-cyan-400/50 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.3)]"
@@ -414,7 +434,7 @@ export function HabitTracker() {
                               isMarked ? "bg-gradient-to-br from-cyan-500 to-emerald-500 border-cyan-400/50 dark:border-cyan-400/50 shadow-lg shadow-cyan-500/25" : "text-slate-700 dark:text-slate-200"
                             } ${isTodayDate ? "ring-2 ring-cyan-300/70" : ""}`}
                           >
-                            <span className="relative flex h-full w-full flex-col items-center justify-center text-sm font-semibold">
+                            <span className="relative flex h-full w-full flex-col items-center justify-center">
                               <span className={isMarked ? "text-white" : ""}>{format(day, "d")}</span>
                               {leetcodeCount > 0 && (
                                 <span className={`text-xs mt-0.5 ${isMarked ? "text-cyan-100" : "text-cyan-600 dark:text-cyan-400"}`}>

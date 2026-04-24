@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { getCompletionTimeAnalysis } from "@/app/services/habit";
 import { Card } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 
 interface TimeData {
   hour: number;
@@ -67,49 +73,72 @@ export function TimeAnalysis() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="border-slate-200 dark:border-white/10 bg-gradient-to-br from-cyan-50 to-emerald-50 dark:from-cyan-500/10 dark:to-emerald-500/10 p-4">
-          <p className="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Peak Hour</p>
-          <p className="mt-2 text-3xl font-bold text-cyan-600 dark:text-cyan-400">{formatHour(bestHour.hour)}</p>
-          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">{bestHour.count} completions ({Math.round((bestHour.count / totalCompletions) * 100)}%)</p>
-        </Card>
+    <div className="space-y-4 sm:space-y-6">
+      <TooltipProvider>
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="border-slate-200 dark:border-white/10 bg-gradient-to-br from-cyan-50 to-emerald-50 dark:from-cyan-500/10 dark:to-emerald-500/10 p-3 sm:p-4 cursor-help">
+                <p className="text-xs sm:text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Peak Hour</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-cyan-600 dark:text-cyan-400">{formatHour(bestHour.hour)}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">{bestHour.count} completions ({Math.round((bestHour.count / totalCompletions) * 100)}%)</p>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              Your most productive hour. Schedule tasks during this time!
+            </TooltipContent>
+          </Tooltip>
 
-        <Card className="border-slate-200 dark:border-white/10 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 p-4">
-          <p className="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Morning (5-11 AM)</p>
-          <p className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400">
-            {Math.round(
-              (timeData
-                .filter((d) => d.hour >= 5 && d.hour < 12)
-                .reduce((sum, d) => sum + d.count, 0) /
-                totalCompletions) *
-                100
-            )}%
-          </p>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="border-slate-200 dark:border-white/10 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 p-3 sm:p-4 cursor-help">
+                <p className="text-xs sm:text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Morning (5-11 AM)</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400">
+                  {Math.round(
+                    (timeData
+                      .filter((d) => d.hour >= 5 && d.hour < 12)
+                      .reduce((sum, d) => sum + d.count, 0) /
+                      totalCompletions) *
+                      100
+                  )}%
+                </p>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              Percentage of completions during morning hours
+            </TooltipContent>
+          </Tooltip>
 
-        <Card className="border-slate-200 dark:border-white/10 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-500/10 dark:to-pink-500/10 p-4">
-          <p className="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Evening (6-11 PM)</p>
-          <p className="mt-2 text-3xl font-bold text-purple-600 dark:text-purple-400">
-            {Math.round(
-              (timeData
-                .filter((d) => d.hour >= 18 && d.hour < 23)
-                .reduce((sum, d) => sum + d.count, 0) /
-                totalCompletions) *
-                100
-            )}%
-          </p>
-        </Card>
-      </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="border-slate-200 dark:border-white/10 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-500/10 dark:to-pink-500/10 p-3 sm:p-4 cursor-help">
+                <p className="text-xs sm:text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Evening (6-11 PM)</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
+                  {Math.round(
+                    (timeData
+                      .filter((d) => d.hour >= 18 && d.hour < 23)
+                      .reduce((sum, d) => sum + d.count, 0) /
+                      totalCompletions) *
+                      100
+                  )}%
+                </p>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              Percentage of completions during evening hours
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
-      <Card className="border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-black dark:text-white">Completion Time Distribution</h3>
-        <ResponsiveContainer width="100%" height={300}>
+      <Card className="border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 p-3 sm:p-6">
+        <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-black dark:text-white">Completion Time Distribution</h3>
+        <ResponsiveContainer width="100%" height={250} minHeight={250}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="hour" tick={{ fill: "#94a3b8", fontSize: 12 }} angle={-45} height={80} />
             <YAxis tick={{ fill: "#94a3b8" }} />
-            <Tooltip
+            <RechartsTooltip
               contentStyle={{
                 backgroundColor: "#1e293b",
                 border: "1px solid #475569",

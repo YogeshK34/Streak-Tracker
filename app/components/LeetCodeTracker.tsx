@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Trash2, Plus, Edit2, X } from "lucide-react";
+import { Trash2, Plus, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Pagination,
   PaginationContent,
@@ -38,6 +42,8 @@ export function LeetCodeTracker() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const itemsPerPage = 5;
   const [formData, setFormData] = useState({
     problem_date: format(new Date(), "yyyy-MM-dd"),
@@ -137,12 +143,18 @@ export function LeetCodeTracker() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this problem?")) return;
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return;
 
     try {
       setError(null);
-      await deleteLeetCodeProblem(id);
-      setProblems((prev) => prev.filter((p) => p.id !== id));
+      await deleteLeetCodeProblem(deletingId);
+      setProblems((prev) => prev.filter((p) => p.id !== deletingId));
+      setDeletingId(null);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       setError(`Failed to delete problem: ${errorMsg}`);
@@ -183,27 +195,28 @@ export function LeetCodeTracker() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="rounded-[2rem] border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-900/95 shadow-2xl shadow-slate-200/50 dark:shadow-slate-950/30">
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+    <div className="space-y-3 sm:space-y-4">
+      <Card className="rounded-xl sm:rounded-[2rem] border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-900/95 shadow-2xl shadow-slate-200/50 dark:shadow-slate-950/30">
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
             <div>
-              <p className="text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Problems Solved</p>
-              <CardTitle className="text-2xl font-semibold text-black dark:text-white">{problems.length} problems</CardTitle>
+              <p className="text-xs sm:text-sm uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">Problems Solved</p>
+              <CardTitle className="text-lg sm:text-2xl font-semibold text-black dark:text-white">{problems.length} problems</CardTitle>
             </div>
             {!isAddingProblem && (
               <Button
                 onClick={() => setIsAddingProblem(true)}
-                className="gap-2 bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg shadow-cyan-500/20"
+                className="gap-2 bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg shadow-cyan-500/20 text-sm py-2 h-auto"
               >
                 <Plus className="h-4 w-4" />
-                Add Problem
+                <span className="hidden sm:inline">Add Problem</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             )}
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -212,17 +225,18 @@ export function LeetCodeTracker() {
 
           {/* Add/Edit Form */}
           {isAddingProblem && (
-            <form onSubmit={handleAddOrUpdate} className="space-y-4 p-4 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-950/50">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <form onSubmit={handleAddOrUpdate} className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-950/50">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="problem-date" className="text-xs sm:text-sm">
                     Problem Date
-                  </label>
+                  </Label>
                   <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                     <PopoverTrigger asChild>
                       <Button
+                        id="problem-date"
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        className="w-full justify-start text-left font-normal text-xs sm:text-sm py-2 h-auto"
                       >
                         {format(selectedDate, "MMM d, yyyy")}
                       </Button>
@@ -239,12 +253,12 @@ export function LeetCodeTracker() {
                   </Popover>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="problem-name" className="text-xs sm:text-sm">
                     Problem Name *
-                  </label>
-                  <input
-                    type="text"
+                  </Label>
+                  <Input
+                    id="problem-name"
                     placeholder="e.g., Two Sum, LRU Cache"
                     value={formData.problem_name}
                     onChange={(e) =>
@@ -253,16 +267,17 @@ export function LeetCodeTracker() {
                         problem_name: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="description" className="text-xs sm:text-sm">
                   Description / Approach
-                </label>
-                <textarea
+                </Label>
+                <Textarea
+                  id="description"
                   placeholder="Add your solution approach, key insights, or learning notes"
                   value={formData.description}
                   onChange={(e) =>
@@ -271,8 +286,7 @@ export function LeetCodeTracker() {
                       description: e.target.value,
                     }))
                   }
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="min-h-16 text-xs sm:text-sm py-1.5 sm:py-2"
                 />
               </div>
 
@@ -281,14 +295,13 @@ export function LeetCodeTracker() {
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
-                  className="gap-2"
+                  className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
                 >
-                  <X className="h-4 w-4" />
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  className="gap-2 bg-cyan-500 hover:bg-cyan-600 text-white"
+                  className="gap-2 bg-cyan-500 hover:bg-cyan-600 text-white text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
                 >
                   {editingId ? "Update" : "Add"} Problem
                 </Button>
@@ -296,21 +309,22 @@ export function LeetCodeTracker() {
             </form>
           )}
 
-          {/* Problems Table */}
+          {/* Problems Table/Cards */}
           {problems.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              <p className="text-sm">No problems added yet. Start tracking your LeetCode progress!</p>
+            <div className="text-center py-6 sm:py-8 text-slate-500 dark:text-slate-400">
+              <p className="text-xs sm:text-sm">No problems added yet. Start tracking your LeetCode progress!</p>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm">
                   <thead>
                     <tr className="border-b border-slate-300 dark:border-slate-700">
-                      <th className="text-left px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Date</th>
-                      <th className="text-left px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Problem Name</th>
-                      <th className="text-left px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Description</th>
-                      <th className="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+                      <th className="text-left px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Date</th>
+                      <th className="text-left px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Problem Name</th>
+                      <th className="text-left px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Description</th>
+                      <th className="text-center px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -319,34 +333,34 @@ export function LeetCodeTracker() {
                         key={problem.id}
                         className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors"
                       >
-                        <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-900 dark:text-slate-100">
                           {format(new Date(problem.problem_date), "MMM d, yyyy")}
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-slate-900 dark:text-slate-100">
                           {problem.problem_name}
                         </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">
                           {problem.description || "-"}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
+                        <td className="px-3 py-2 sm:px-4 sm:py-3">
+                          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                             <Button
                               onClick={() => handleEdit(problem)}
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                              className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
                               title="Edit"
                             >
-                              <Edit2 className="h-4 w-4 text-blue-500" />
+                              <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
                             </Button>
                             <Button
                               onClick={() => handleDelete(problem.id)}
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900/30"
+                              className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900/30"
                               title="Delete"
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
                             </Button>
                           </div>
                         </td>
@@ -356,9 +370,55 @@ export function LeetCodeTracker() {
                 </table>
               </div>
 
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-2 sm:space-y-3">
+                {paginatedProblems.map((problem) => (
+                  <div
+                    key={problem.id}
+                    className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4 bg-white dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1">
+                        <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mb-0.5">
+                          {format(new Date(problem.problem_date), "MMM d, yyyy")}
+                        </p>
+                        <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 break-words">
+                          {problem.problem_name}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button
+                          onClick={() => handleEdit(problem)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-3.5 w-3.5 text-blue-500" />
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(problem.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 hover:bg-red-100 dark:hover:bg-red-900/30"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                    {problem.description && (
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                        {problem.description}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center mt-6">
+                <div className="flex justify-center mt-4 sm:mt-6 overflow-x-auto">
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
@@ -373,7 +433,7 @@ export function LeetCodeTracker() {
                           <PaginationLink
                             onClick={() => setCurrentPage(page)}
                             isActive={currentPage === page}
-                            className="cursor-pointer"
+                            className="cursor-pointer text-xs sm:text-sm"
                           >
                             {page}
                           </PaginationLink>
@@ -394,6 +454,17 @@ export function LeetCodeTracker() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Problem"
+        description="Are you sure you want to delete this problem? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
