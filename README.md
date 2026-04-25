@@ -4,11 +4,12 @@ A minimal habit tracking app with calendar-grid interface to build consistent st
 
 ## Features
 
-- **Calendar View**: Interactive monthly calendar to mark completed days
-- **Streak Tracking**: Automatic current & longest streak calculation
+- **Habit Tracking**: Calendar-grid interface with streak calculation
+- **LeetCode Integration**: Track daily coding practice and submission count
+- **Streak Tracking**: Automatic current & longest streak calculation for both habits and LeetCode
 - **User Authentication**: Email/password sign-up via Supabase
 - **Persistent Storage**: Cloud database backend
-- **Visual Feedback**: Red cross-off animation for completed days
+- **Visual Feedback**: Cross-off animations for completed activities
 
 ## Tech Stack
 
@@ -35,8 +36,9 @@ Open [http://localhost:3000](http://localhost:3000)
 ## Usage
 
 1. Sign up with email
-2. Click days to mark habits complete
-3. Watch your streak grow! 🔥
+2. **Habits**: Click days on the calendar to mark habits complete
+3. **LeetCode**: Log problems solved and track your coding streak
+4. Watch your streaks grow! 🔥
 
 ## Setup Notes
 
