@@ -80,10 +80,12 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     loadProblems();
   }, [user]);
 
-  // Notify parent when problems count changes
+  // Notify parent when problems count changes (only after loaded)
   useEffect(() => {
-    onProblemCountChange?.(problems.length);
-  }, [problems.length, onProblemCountChange]);
+    if (isLoaded) {
+      onProblemCountChange?.(problems.length);
+    }
+  }, [problems.length, onProblemCountChange, isLoaded]);
 
   const loadProblems = async () => {
     try {
@@ -136,8 +138,10 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
           formData.problem_name,
           formData.description
         );
-        // Refresh to get the newly added problem with id
-        await loadProblems();
+        // Add the new problem to state directly instead of refetching all
+        if (result.data && result.data.length > 0) {
+          setProblems((prev) => [result.data[0], ...prev]);
+        }
       }
 
       // Reset form
@@ -684,7 +688,12 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
-                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          onClick={() => {
+                            setCurrentPage(Math.max(1, currentPage - 1));
+                            setStartDateCalendarOpen(false);
+                            setEndDateCalendarOpen(false);
+                            setCalendarOpen(false);
+                          }}
                           className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>
@@ -692,7 +701,12 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <PaginationItem key={page}>
                           <PaginationLink
-                            onClick={() => setCurrentPage(page)}
+                            onClick={() => {
+                              setCurrentPage(page);
+                              setStartDateCalendarOpen(false);
+                              setEndDateCalendarOpen(false);
+                              setCalendarOpen(false);
+                            }}
                             isActive={currentPage === page}
                             className="cursor-pointer text-xs sm:text-sm"
                           >
@@ -703,7 +717,12 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
 
                       <PaginationItem>
                         <PaginationNext
-                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          onClick={() => {
+                            setCurrentPage(Math.min(totalPages, currentPage + 1));
+                            setStartDateCalendarOpen(false);
+                            setEndDateCalendarOpen(false);
+                            setCalendarOpen(false);
+                          }}
                           className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>

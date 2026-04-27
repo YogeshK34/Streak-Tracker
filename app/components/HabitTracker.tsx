@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   format,
   startOfMonth,
@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -99,6 +99,27 @@ export function HabitTracker() {
         // Don't show error for this, it's optional
       });
   }, [user]);
+
+  // Also update the calendar when leetcode count changes (new problems added)
+  const updateLeetcodeDisplay = useCallback(async () => {
+    try {
+      const res = await getLeetCodeProblems();
+      // Create a map of dates to problem counts
+      const problemsByDate: Record<string, number> = {};
+      res.data.forEach((problem) => {
+        const date = problem.problem_date;
+        problemsByDate[date] = (problemsByDate[date] || 0) + 1;
+      });
+      setLeetcodeProblemsByDate(problemsByDate);
+    } catch (err) {
+      console.error("Failed to update LeetCode display:", err);
+    }
+  }, []);
+
+  // Reload display when count changes (e.g., new problem added)
+  useEffect(() => {
+    updateLeetcodeDisplay();
+  }, [leetcodeProblemCount, updateLeetcodeDisplay]);
 
   // Update browser tab title with LeetCode count
   useEffect(() => {
@@ -348,7 +369,6 @@ export function HabitTracker() {
                   ))}
                 </TooltipProvider>
               </TabsList>
-              <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
             {/* Calendar Tab */}
