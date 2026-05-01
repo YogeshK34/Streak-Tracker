@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, memo } from "react";
 import {
   format,
   startOfMonth,
@@ -30,8 +30,10 @@ import { useTheme } from "@/lib/theme-provider";
 import { useAuth } from "@/lib/auth-context";
 import { checkDatabaseSetup } from "@/lib/db-debug";
 import { StreakTimeline } from "./StreakTimeline";
-import { LeetCodeTracker } from "./LeetCodeTracker";
+import { LeetCodeTracker as LeetCodeTrackerComponent } from "./LeetCodeTracker";
 import { DSNotesTracker } from "./DSNotesTracker";
+
+const MemoizedLeetCodeTracker = memo(LeetCodeTrackerComponent);
 
 interface MarkedDays {
   [key: string]: boolean;
@@ -98,26 +100,13 @@ export function HabitTracker() {
       });
   }, [user]);
 
-  // Also update the calendar when leetcode count changes (new problems added)
-  const updateLeetcodeDisplay = useCallback(async () => {
-    try {
-      const res = await getLeetCodeProblems();
-      // Create a map of dates to problem counts
-      const problemsByDate: Record<string, number> = {};
-      res.data.forEach((problem) => {
-        const date = problem.problem_date;
-        problemsByDate[date] = (problemsByDate[date] || 0) + 1;
-      });
+  // Memoize callback to prevent infinite loops in child component
+  const handleLeetcodeChange = useCallback((count: number, problemsByDate?: Record<string, number>) => {
+    setLeetcodeProblemCount(count);
+    if (problemsByDate) {
       setLeetcodeProblemsByDate(problemsByDate);
-    } catch (err) {
-      console.error("Failed to update LeetCode display:", err);
     }
   }, []);
-
-  // Reload display when count changes (e.g., new problem added)
-  useEffect(() => {
-    updateLeetcodeDisplay();
-  }, [leetcodeProblemCount, updateLeetcodeDisplay]);
 
   // Update browser tab title with LeetCode count
   useEffect(() => {
@@ -517,7 +506,7 @@ export function HabitTracker() {
             </TabsContent>
 
             <TabsContent value="leetcode" className="mt-6 min-h-[400px]">
-              <LeetCodeTracker onProblemCountChange={setLeetcodeProblemCount} />
+              <MemoizedLeetCodeTracker onProblemCountChange={handleLeetcodeChange} />
             </TabsContent>
 
             <TabsContent value="dsnotes" className="mt-6 min-h-[400px]">

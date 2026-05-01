@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { format } from "date-fns";
 import { Trash2, Plus, Edit2, Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 
 interface LeetCodeTrackerProps {
-  onProblemCountChange?: (count: number) => void;
+  onProblemCountChange?: (count: number, problemsByDate?: Record<string, number>) => void;
 }
 
 export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps = {}) {
@@ -84,12 +84,22 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     loadProblems();
   }, [user]);
 
+  // Memoize the problems by date calculation
+  const problemsByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    problems.forEach((problem) => {
+      const date = problem.problem_date;
+      map[date] = (map[date] || 0) + 1;
+    });
+    return map;
+  }, [problems]);
+
   // Notify parent when problems count changes (only after loaded)
   useEffect(() => {
     if (isLoaded) {
-      onProblemCountChange?.(problems.length);
+      onProblemCountChange?.(problems.length, problemsByDate);
     }
-  }, [problems.length, onProblemCountChange, isLoaded]);
+  }, [problems.length, isLoaded]);
 
   const loadProblems = async () => {
     try {
