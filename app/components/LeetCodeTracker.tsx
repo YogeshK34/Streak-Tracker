@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -742,6 +743,9 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
               Problem Details
             </DialogTitle>
           </DialogHeader>
+          <DialogDescription className="sr-only">
+            View and edit your LeetCode problem details
+          </DialogDescription>
 
           {selectedProblem && (
             <div className="space-y-3 sm:space-y-4 md:space-y-5 pr-0">

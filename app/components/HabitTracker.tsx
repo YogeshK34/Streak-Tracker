@@ -30,16 +30,14 @@ import { useTheme } from "@/lib/theme-provider";
 import { useAuth } from "@/lib/auth-context";
 import { checkDatabaseSetup } from "@/lib/db-debug";
 import { StreakTimeline } from "./StreakTimeline";
-import { WeeklyStats } from "./WeeklyStats";
-import { TimeAnalysis } from "./TimeAnalysis";
-import { Achievements } from "./Achievements";
 import { LeetCodeTracker } from "./LeetCodeTracker";
+import { DSNotesTracker } from "./DSNotesTracker";
 
 interface MarkedDays {
   [key: string]: boolean;
 }
 
-type TabType = "calendar" | "history" | "weekly" | "time" | "achievements" | "leetcode";
+type TabType = "calendar" | "history" | "leetcode" | "dsnotes";
 
 export function HabitTracker() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -289,17 +287,15 @@ export function HabitTracker() {
   const tabsConfig: Array<{ id: TabType; label: string; icon: React.ReactNode; tooltip: string }> = [
     { id: "calendar", label: "Calendar", icon: <CalendarDays className="w-4 h-4" />, tooltip: "View and mark your daily habits" },
     { id: "history", label: "Streak History", icon: <Flame className="w-4 h-4" />, tooltip: "Track your past streaks" },
-    { id: "weekly", label: "Weekly Stats", icon: "📊", tooltip: "Weekly completion statistics" },
-    { id: "time", label: "Best Time", icon: "⏰", tooltip: "Your most productive hours" },
     { id: "leetcode", label: "LeetCode", icon: "💻", tooltip: "Track LeetCode problems solved" },
-    { id: "achievements", label: "Achievements", icon: "🏆", tooltip: "Your badges and milestones" },
+    { id: "dsnotes", label: "DS Notes", icon: "📚", tooltip: "Data Structures learning notes" },
   ];
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-2 pb-16 sm:px-4 md:px-8">
-      <Card className="relative overflow-hidden rounded-xl sm:rounded-[2.5rem] border border-white/10 bg-white dark:bg-slate-950/90 p-4 sm:p-6 md:p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl transition-colors">
+    <section className="mx-auto w-full max-w-5xl px-2 pb-16 sm:px-4 md:px-8 overflow-hidden">
+      <Card className="relative overflow-hidden rounded-xl sm:rounded-[2.5rem] border border-white/10 bg-white dark:bg-slate-950/90 p-4 sm:p-6 md:p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl transition-colors w-full">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(250,204,21,0.14),_transparent_28%)]" />
-        <CardContent className="relative space-y-6 sm:space-y-8 px-0">
+        <CardContent className="relative space-y-6 sm:space-y-8 px-0 overflow-hidden">
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
@@ -520,20 +516,12 @@ export function HabitTracker() {
               <StreakTimeline />
             </TabsContent>
 
-            <TabsContent value="weekly" className="mt-6 min-h-[400px]">
-              <WeeklyStats />
-            </TabsContent>
-
-            <TabsContent value="time" className="mt-6 min-h-[400px]">
-              <TimeAnalysis />
-            </TabsContent>
-
             <TabsContent value="leetcode" className="mt-6 min-h-[400px]">
               <LeetCodeTracker onProblemCountChange={setLeetcodeProblemCount} />
             </TabsContent>
 
-            <TabsContent value="achievements" className="mt-6 min-h-[400px]">
-              <Achievements />
+            <TabsContent value="dsnotes" className="mt-6 min-h-[400px]">
+              <DSNotesTracker />
             </TabsContent>
           </Tabs>
         </CardContent>
