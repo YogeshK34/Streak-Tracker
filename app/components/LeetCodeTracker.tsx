@@ -64,6 +64,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
   const [showFilters, setShowFilters] = useState(false);
   const [startDateCalendarOpen, setStartDateCalendarOpen] = useState(false);
   const [endDateCalendarOpen, setEndDateCalendarOpen] = useState(false);
+  const [cancelConfirmDialogOpen, setCancelConfirmDialogOpen] = useState(false);
   const itemsPerPage = 5;
   const [formData, setFormData] = useState({
     problem_date: format(new Date(), "yyyy-MM-dd"),
@@ -71,6 +72,8 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     description: "",
   });
   const { user } = useAuth();
+
+  const hasFormChanges = formData.problem_name.trim() !== "" || formData.description.trim() !== "";
 
   useEffect(() => {
     if (!user) {
@@ -191,6 +194,14 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
   };
 
   const handleCancel = () => {
+    if (hasFormChanges) {
+      setCancelConfirmDialogOpen(true);
+    } else {
+      handleConfirmCancel();
+    }
+  };
+
+  const handleConfirmCancel = () => {
     setIsAddingProblem(false);
     setEditingId(null);
     setSelectedDate(new Date());
@@ -200,6 +211,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       problem_name: "",
       description: "",
     });
+    setCancelConfirmDialogOpen(false);
   };
 
   const handleOpenDetails = (problem: LeetCodeProblem) => {
@@ -737,7 +749,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       </Card>
 
       <Dialog open={detailsDialogOpen} onOpenChange={handleCloseDetails}>
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
             <DialogTitle className="text-base sm:text-lg md:text-xl font-semibold flex-1 pr-2 break-words">
               Problem Details
@@ -805,6 +817,17 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
         cancelText="Cancel"
         isDestructive
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={cancelConfirmDialogOpen}
+        onOpenChange={setCancelConfirmDialogOpen}
+        title="Discard Changes?"
+        description="You have unsaved changes. Do you want to discard them or keep editing?"
+        confirmText="Discard"
+        cancelText="Keep Editing"
+        isDestructive
+        onConfirm={handleConfirmCancel}
       />
     </div>
   );

@@ -34,6 +34,14 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
+import { RenderNotesWithCode } from "./RenderNotesWithCode";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function DSNotesTracker() {
   const [notes, setNotes] = useState<DSNote[]>([]);
@@ -52,6 +60,7 @@ export function DSNotesTracker() {
   const [endDateCalendarOpen, setEndDateCalendarOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [cancelConfirmDialogOpen, setCancelConfirmDialogOpen] = useState(false);
   const itemsPerPage = 5;
 
   // Form state
@@ -60,8 +69,12 @@ export function DSNotesTracker() {
     concept_name: "",
     notes: "",
   });
+  const [codeBlock, setCodeBlock] = useState("");
+  const [language, setLanguage] = useState("cpp");
 
   const { user } = useAuth();
+
+  const hasFormChanges = formData.ds_name.trim() !== "" || formData.concept_name.trim() !== "" || formData.notes.trim() !== "" || codeBlock.trim() !== "";
 
   useEffect(() => {
     if (!user) {
@@ -130,8 +143,22 @@ export function DSNotesTracker() {
   const handleAddOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.ds_name.trim() || !formData.concept_name.trim() || !formData.notes.trim()) {
-      setError("Please fill in all fields");
+    if (!formData.ds_name.trim() || !formData.concept_name.trim()) {
+      setError("Please fill in Data Structure and Concept fields");
+      return;
+    }
+
+    // Combine notes and code block
+    let combinedNotes = formData.notes.trim();
+    if (codeBlock.trim()) {
+      if (combinedNotes) {
+        combinedNotes += "\n\n";
+      }
+      combinedNotes += `[CODE_BLOCK:${language}]\n${codeBlock.trim()}\n[/CODE_BLOCK]`;
+    }
+
+    if (!combinedNotes.trim()) {
+      setError("Please fill in at least Notes or add a Code Block");
       return;
     }
 
@@ -143,7 +170,7 @@ export function DSNotesTracker() {
           editingId,
           formData.ds_name.trim(),
           formData.concept_name.trim(),
-          formData.notes.trim()
+          combinedNotes
         );
         setNotes((prev) =>
           prev.map((n) =>
@@ -152,7 +179,7 @@ export function DSNotesTracker() {
                   ...n,
                   ds_name: formData.ds_name.trim(),
                   concept_name: formData.concept_name.trim(),
-                  notes: formData.notes.trim(),
+                  notes: combinedNotes,
                   updated_at: new Date().toISOString(),
                 }
               : n
@@ -162,7 +189,7 @@ export function DSNotesTracker() {
         const result = await addDSNote(
           formData.ds_name.trim(),
           formData.concept_name.trim(),
-          formData.notes.trim()
+          combinedNotes
         );
         // Add the new note to state directly
         if (result.data && result.data.length > 0) {
@@ -172,6 +199,8 @@ export function DSNotesTracker() {
 
       // Reset form
       setFormData({ ds_name: "", concept_name: "", notes: "" });
+      setCodeBlock("");
+      setLanguage("cpp");
       setIsAddingNote(false);
       setEditingId(null);
     } catch (err) {
@@ -181,20 +210,48 @@ export function DSNotesTracker() {
   };
 
   const handleEdit = (note: DSNote) => {
+    // Extract code block if present
+    const codeBlockRegex = /\[CODE_BLOCK:(.*?)\]\n([\s\S]*?)\n\[\/CODE_BLOCK\]/;
+    const match = note.notes.match(codeBlockRegex);
+
+    let notesText = note.notes;
+    let extractedCode = "";
+    let extractedLanguage = "cpp";
+
+    if (match) {
+      extractedLanguage = match[1];
+      extractedCode = match[2];
+      // Remove code block from notes
+      notesText = note.notes.replace(codeBlockRegex, "").trim();
+    }
+
     setFormData({
       ds_name: note.ds_name,
       concept_name: note.concept_name,
-      notes: note.notes,
+      notes: notesText,
     });
+    setCodeBlock(extractedCode);
+    setLanguage(extractedLanguage);
     setEditingId(note.id);
     setIsAddingNote(true);
   };
 
   const handleCancel = () => {
+    if (hasFormChanges) {
+      setCancelConfirmDialogOpen(true);
+    } else {
+      handleConfirmCancel();
+    }
+  };
+
+  const handleConfirmCancel = () => {
     setFormData({ ds_name: "", concept_name: "", notes: "" });
+    setCodeBlock("");
+    setLanguage("cpp");
     setEditingId(null);
     setIsAddingNote(false);
     setError(null);
+    setCancelConfirmDialogOpen(false);
   };
 
   const handleOpenDetails = (note: DSNote) => {
@@ -490,7 +547,7 @@ export function DSNotesTracker() {
 
               <div className="space-y-1.5 sm:space-y-2">
                 <Label htmlFor="notes" className="text-xs sm:text-sm">
-                  Your Understanding & Feelings *
+                  Your Understanding & Feelings
                 </Label>
                 <Textarea
                   id="notes"
@@ -504,6 +561,65 @@ export function DSNotesTracker() {
                   }
                   className="min-h-16 text-xs sm:text-sm py-1.5 sm:py-2"
                 />
+              </div>
+
+              {/* Code Block Section */}
+              <div className="space-y-1.5 sm:space-y-2 p-3 sm:p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs sm:text-sm font-semibold">
+                    Add Code Block (Optional)
+                  </Label>
+                  {codeBlock.trim() && (
+                    <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                      ✓ Code added
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3">
+                  <div className="sm:col-span-1">
+                    <Label htmlFor="language" className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">
+                      Language
+                    </Label>
+                    <Select value={language} onValueChange={setLanguage}>
+                      <SelectTrigger className="text-xs sm:text-sm h-auto py-1.5 sm:py-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cpp">C++</SelectItem>
+                        <SelectItem value="python">Python</SelectItem>
+                        <SelectItem value="java">Java</SelectItem>
+                        <SelectItem value="javascript">JavaScript</SelectItem>
+                        <SelectItem value="c">C</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="code-block" className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">
+                      Code
+                    </Label>
+                    <Textarea
+                      id="code-block"
+                      placeholder="Paste or type your code here..."
+                      value={codeBlock}
+                      onChange={(e) => setCodeBlock(e.target.value)}
+                      className="min-h-20 text-xs sm:text-sm py-1.5 sm:py-2 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {codeBlock.trim() && (
+                  <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">Preview:</p>
+                    <div className="bg-slate-900 dark:bg-slate-950 border border-slate-800 dark:border-slate-700 rounded p-2 overflow-x-auto">
+                      <code className="font-mono text-xs text-slate-100 whitespace-pre-wrap break-words">
+                        {codeBlock}
+                      </code>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 justify-end">
@@ -632,9 +748,9 @@ export function DSNotesTracker() {
                       </div>
                     </div>
                     {note.notes && (
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
-                        {note.notes}
-                      </p>
+                      <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                        <RenderNotesWithCode content={note.notes} />
+                      </div>
                     )}
                   </div>
                 ))}
@@ -692,7 +808,7 @@ export function DSNotesTracker() {
       </Card>
 
       <Dialog open={detailsDialogOpen} onOpenChange={handleCloseDetails}>
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
             <DialogTitle className="text-base sm:text-lg md:text-xl font-semibold flex-1 pr-2 break-words">
               Note Details
@@ -726,9 +842,9 @@ export function DSNotesTracker() {
                 <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 mb-2">
                   Your Understanding & Feelings
                 </p>
-                <p className="text-xs sm:text-sm md:text-base text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words max-h-[40vh] overflow-y-auto">
-                  {selectedNote.notes}
-                </p>
+                <div className="text-xs sm:text-sm md:text-base text-slate-700 dark:text-slate-300 max-h-[40vh] overflow-y-auto">
+                  <RenderNotesWithCode content={selectedNote.notes} />
+                </div>
               </div>
 
               <div className="text-xs text-slate-500 dark:text-slate-500">
@@ -761,6 +877,17 @@ export function DSNotesTracker() {
         cancelText="Cancel"
         isDestructive
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={cancelConfirmDialogOpen}
+        onOpenChange={setCancelConfirmDialogOpen}
+        title="Discard Changes?"
+        description="You have unsaved changes. Do you want to discard them or keep editing?"
+        confirmText="Discard"
+        cancelText="Keep Editing"
+        isDestructive
+        onConfirm={handleConfirmCancel}
       />
     </div>
   );
