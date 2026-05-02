@@ -608,7 +608,6 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                       <th className="text-left px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Date</th>
                       <th className="text-left px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Problem Name</th>
                       <th className="text-left px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Description</th>
-                      <th className="text-center px-3 py-2 sm:px-4 sm:py-3 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -629,28 +628,6 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">
                           {problem.description || "-"}
                         </td>
-                        <td className="px-3 py-2 sm:px-4 sm:py-3">
-                          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                            <Button
-                              onClick={() => handleEdit(problem)}
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                              title="Edit"
-                            >
-                              <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
-                            </Button>
-                            <Button
-                              onClick={() => handleDelete(problem.id)}
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900/30"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -665,38 +642,16 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                     className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4 bg-white dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
                     onClick={() => handleOpenDetails(problem)}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1">
-                        <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mb-0.5">
-                          {format(new Date(problem.problem_date), "MMM d, yyyy")}
-                        </p>
-                        <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 break-words hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors">
-                          {problem.problem_name}
-                        </p>
-                      </div>
-                      <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          onClick={() => handleEdit(problem)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                          title="Edit"
-                        >
-                          <Edit2 className="h-3.5 w-3.5 text-blue-500" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(problem.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:bg-red-100 dark:hover:bg-red-900/30"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                        </Button>
-                      </div>
+                    <div className="flex-1">
+                      <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 mb-0.5">
+                        {format(new Date(problem.problem_date), "MMM d, yyyy")}
+                      </p>
+                      <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 break-words hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors">
+                        {problem.problem_name}
+                      </p>
                     </div>
                     {problem.description && (
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mt-2">
                         {problem.description}
                       </p>
                     )}
@@ -811,6 +766,17 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                   Edit
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedProblem) {
+                      handleDelete(selectedProblem.id);
+                    }
+                  }}
+                  className="gap-2 bg-red-500 hover:bg-red-600 text-white text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
                 </Button>
               </div>
             </div>
