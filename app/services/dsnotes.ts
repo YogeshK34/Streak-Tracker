@@ -145,3 +145,22 @@ export async function updateDSNote(
     throw error;
   }
 }
+
+export async function exportDSNoteData(format: "csv" | "json" | "excel") {
+  try {
+    const token = await getAuthToken();
+    console.log(`📥 Exporting DS notes as ${format}...`);
+    const res = await fetch(`/api/dsnotes/export?format=${format}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to export data: ${res.status}`);
+    }
+
+    return res;
+  } catch (error) {
+    console.error("❌ exportDSNoteData error:", error);
+    throw error;
+  }
+}

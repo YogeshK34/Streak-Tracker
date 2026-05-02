@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { format } from "date-fns";
-import { Trash2, Plus, Edit2, Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, Edit2, Search, Filter, ChevronDown, ChevronUp, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ import {
   addLeetCodeProblem,
   deleteLeetCodeProblem,
   updateLeetCodeProblem,
+  exportLeetCodeData,
   LeetCodeProblem,
 } from "@/app/services/leetcode";
 import { useAuth } from "@/lib/auth-context";
@@ -65,6 +66,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
   const [startDateCalendarOpen, setStartDateCalendarOpen] = useState(false);
   const [endDateCalendarOpen, setEndDateCalendarOpen] = useState(false);
   const [cancelConfirmDialogOpen, setCancelConfirmDialogOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const itemsPerPage = 5;
   const [formData, setFormData] = useState({
     problem_date: format(new Date(), "yyyy-MM-dd"),
@@ -224,6 +226,27 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     setCancelConfirmDialogOpen(false);
   };
 
+  const handleExport = async (fmt: "csv" | "json" | "excel") => {
+    setExporting(true);
+    try {
+      const res = await exportLeetCodeData(fmt);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `leetcode-export-${new Date().toISOString().split("T")[0]}.${fmt === "excel" ? "xlsx" : fmt}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError("Failed to export data");
+      console.error("Export error:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleOpenDetails = (problem: LeetCodeProblem) => {
     setSelectedProblem(problem);
     setDetailsDialogOpen(true);
@@ -327,7 +350,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
           {/* Search and Filter Section */}
           {!isAddingProblem && problems.length > 0 && (
             <div className="space-y-3 sm:space-y-4">
-              {/* Search Bar */}
+              {/* Search Bar + Filters Row */}
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -351,6 +374,40 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                   <Filter className="h-4 w-4" />
                   <span className="hidden sm:inline">Filters</span>
                   {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </div>
+
+              {/* Export Buttons Row - Right Aligned */}
+              <div className="flex justify-end gap-1 sm:gap-2">
+                <Button
+                  onClick={() => handleExport("csv")}
+                  disabled={exporting}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-3"
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">CSV</span>
+                </Button>
+                <Button
+                  onClick={() => handleExport("json")}
+                  disabled={exporting}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-3"
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">JSON</span>
+                </Button>
+                <Button
+                  onClick={() => handleExport("excel")}
+                  disabled={exporting}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-3"
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Excel</span>
                 </Button>
               </div>
 

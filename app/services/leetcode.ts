@@ -144,3 +144,22 @@ export async function updateLeetCodeProblem(
     throw error;
   }
 }
+
+export async function exportLeetCodeData(format: "csv" | "json" | "excel") {
+  try {
+    const token = await getAuthToken();
+    console.log(`📥 Exporting LeetCode problems as ${format}...`);
+    const res = await fetch(`/api/leetcode/export?format=${format}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to export data: ${res.status}`);
+    }
+
+    return res;
+  } catch (error) {
+    console.error("❌ exportLeetCodeData error:", error);
+    throw error;
+  }
+}
