@@ -226,6 +226,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       problem_name: "",
       description: "",
     });
+    setError(null);
     setCancelConfirmDialogOpen(false);
   };
 
@@ -332,7 +333,10 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
             </div>
             {!isAddingProblem && (
               <Button
-                onClick={() => setIsAddingProblem(true)}
+                onClick={() => {
+                  setIsAddingProblem(true);
+                  setError(null);
+                }}
                 className="gap-2 bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg shadow-cyan-500/20 text-sm py-2 h-auto"
               >
                 <Plus className="h-4 w-4" />

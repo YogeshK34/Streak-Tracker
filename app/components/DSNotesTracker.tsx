@@ -335,7 +335,10 @@ export function DSNotesTracker() {
             </div>
             {!isAddingNote && (
               <Button
-                onClick={() => setIsAddingNote(true)}
+                onClick={() => {
+                  setIsAddingNote(true);
+                  setError(null);
+                }}
                 className="gap-2 bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg shadow-cyan-500/20 text-sm py-2 h-auto"
               >
                 <Plus className="h-4 w-4" />
