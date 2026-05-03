@@ -96,7 +96,8 @@ export async function POST(req: NextRequest) {
           problem_name,
           description: description || null,
         },
-      ]);
+      ])
+      .select();
 
     if (error) {
       console.error("❌ Insert failed:", error.message, error.details);
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ Inserted successfully:", insertData);
     return NextResponse.json(
-      { data: insertData },
+      { data: insertData?.[0] ?? null },
       { status: 200 }
     );
   } catch (error) {

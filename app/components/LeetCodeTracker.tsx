@@ -155,8 +155,8 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
           formData.description
         );
         // Add the new problem to state directly instead of refetching all
-        if (result.data && result.data.length > 0) {
-          setProblems((prev) => [result.data[0], ...prev]);
+        if (result.data) {
+          setProblems((prev) => [result.data, ...prev]);
         }
       }
 
@@ -199,6 +199,9 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       await deleteLeetCodeProblem(deletingId);
       setProblems((prev) => prev.filter((p) => p.id !== deletingId));
       setDeletingId(null);
+      if (selectedProblem?.id === deletingId) {
+        handleCloseDetails();
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       setError(`Failed to delete problem: ${errorMsg}`);

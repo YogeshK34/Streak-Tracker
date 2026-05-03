@@ -193,8 +193,8 @@ export function DSNotesTracker() {
           combinedNotes
         );
         // Add the new note to state directly
-        if (result.data && result.data.length > 0) {
-          setNotes((prev) => [result.data[0], ...prev]);
+        if (result.data) {
+          setNotes((prev) => [result.data, ...prev]);
         }
       }
 
