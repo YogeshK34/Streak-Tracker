@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     const { data: problems, error } = await supabase
       .from("leetcode_problems")
-      .select("id, problem_date, problem_name, description, created_at")
+      .select("id, problem_date, problem_name, description, data_structure, technique, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -50,11 +50,13 @@ export async function GET(req: NextRequest) {
     };
 
     if (format === "csv") {
-      let csv = "Problem #,Problem Name,Description,Date Solved,Added On\n";
+      let csv = "Problem #,Problem Name,Description,Data Structure,Technique,Date Solved,Added On\n";
       (problems || []).forEach((p: any, index: number) => {
         const desc = p.description ? `"${p.description.replace(/"/g, '""')}"` : "";
         const name = `"${p.problem_name.replace(/"/g, '""')}"`;
-        csv += `${index + 1},${name},${desc},${p.problem_date},${p.created_at}\n`;
+        const ds = p.data_structure ? `"${p.data_structure.replace(/"/g, '""')}"` : "";
+        const tech = p.technique ? `"${p.technique.replace(/"/g, '""')}"` : "";
+        csv += `${index + 1},${name},${desc},${ds},${tech},${p.problem_date},${p.created_at}\n`;
       });
 
       return new NextResponse(csv, {
@@ -66,11 +68,13 @@ export async function GET(req: NextRequest) {
       });
     } else if (format === "excel") {
       const worksheetData = [
-        ["Problem #", "Problem Name", "Description", "Date Solved", "Added On"],
+        ["Problem #", "Problem Name", "Description", "Data Structure", "Technique", "Date Solved", "Added On"],
         ...(problems || []).map((p: any, index: number) => [
           index + 1,
           p.problem_name,
           p.description || "",
+          p.data_structure || "",
+          p.technique || "",
           p.problem_date,
           p.created_at,
         ]),
@@ -86,6 +90,8 @@ export async function GET(req: NextRequest) {
         { wch: 10 },
         { wch: 30 },
         { wch: 40 },
+        { wch: 15 },
+        { wch: 15 },
         { wch: 15 },
         { wch: 25 },
       ];

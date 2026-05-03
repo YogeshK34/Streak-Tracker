@@ -5,6 +5,8 @@ export type LeetCodeProblem = {
   problem_date: string;
   problem_name: string;
   description: string | null;
+  data_structure: string | null;
+  technique: string | null;
   created_at: string;
 };
 
@@ -46,7 +48,9 @@ export async function getLeetCodeProblems() {
 export async function addLeetCodeProblem(
   problemDate: string,
   problemName: string,
-  description: string
+  description: string,
+  dataStructure?: string,
+  technique?: string
 ) {
   try {
     const token = await getAuthToken();
@@ -61,6 +65,8 @@ export async function addLeetCodeProblem(
         problem_date: problemDate,
         problem_name: problemName,
         description: description,
+        data_structure: dataStructure || null,
+        technique: technique || null,
       }),
     });
 
@@ -111,7 +117,9 @@ export async function updateLeetCodeProblem(
   id: number,
   problemDate: string,
   problemName: string,
-  description: string
+  description: string,
+  dataStructure?: string,
+  technique?: string
 ) {
   try {
     const token = await getAuthToken();
@@ -127,6 +135,8 @@ export async function updateLeetCodeProblem(
         problem_date: problemDate,
         problem_name: problemName,
         description: description,
+        data_structure: dataStructure || null,
+        technique: technique || null,
       }),
     });
 

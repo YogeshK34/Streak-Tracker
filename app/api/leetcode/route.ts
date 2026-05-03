@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { problem_date, problem_name, description } = body;
+    const { problem_date, problem_name, description, data_structure, technique } = body;
 
     console.log(
       `📝 POST request: user=${user.id}, problem=${problem_name}, date=${problem_date}`
@@ -95,6 +95,8 @@ export async function POST(req: NextRequest) {
           problem_date,
           problem_name,
           description: description || null,
+          data_structure: data_structure || null,
+          technique: technique || null,
         },
       ])
       .select();
@@ -139,7 +141,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, problem_date, problem_name, description } = body;
+    const { id, problem_date, problem_name, description, data_structure, technique } = body;
 
     console.log(`📝 PUT request: id=${id}, user=${user.id}`);
 
@@ -157,6 +159,8 @@ export async function PUT(req: NextRequest) {
         problem_date,
         problem_name,
         description: description || null,
+        data_structure: data_structure || null,
+        technique: technique || null,
       })
       .eq("id", id)
       .eq("user_id", user.id);

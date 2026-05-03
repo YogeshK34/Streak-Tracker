@@ -54,6 +54,8 @@ create table if not exists leetcode_problems (
   problem_date date not null,
   problem_name text not null,
   description text,
+  data_structure text,
+  technique text,
   created_at timestamptz not null default now()
 );
 

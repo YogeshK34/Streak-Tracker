@@ -13,6 +13,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -46,6 +53,27 @@ interface LeetCodeTrackerProps {
   onProblemCountChange?: (count: number, problemsByDate?: Record<string, number>) => void;
 }
 
+const DATA_STRUCTURE_OPTIONS = [
+  "Arrays",
+  "LinkedList",
+  "Strings",
+  "Trees",
+  "Graphs",
+  "Stack",
+  "Queue",
+  "HashMap",
+];
+
+const TECHNIQUE_OPTIONS = [
+  "Two Pointer",
+  "Sliding Window",
+  "Binary Search",
+  "Floyd's Algorithm",
+  "Fast & Slow Pointers",
+  "Recursion",
+  "Dynamic Programming",
+];
+
 export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps = {}) {
   const [problems, setProblems] = useState<LeetCodeProblem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -73,9 +101,15 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     problem_name: "",
     description: "",
   });
+  const [dataStructure, setDataStructure] = useState("");
+  const [dataStructureOther, setDataStructureOther] = useState("");
+  const [technique, setTechnique] = useState("");
+  const [techniqueOther, setTechniqueOther] = useState("");
+  const [filterDataStructure, setFilterDataStructure] = useState("");
+  const [filterTechnique, setFilterTechnique] = useState("");
   const { user } = useAuth();
 
-  const hasFormChanges = formData.problem_name.trim() !== "" || formData.description.trim() !== "";
+  const hasFormChanges = formData.problem_name.trim() !== "" || formData.description.trim() !== "" || dataStructure !== "" || technique !== "";
 
   useEffect(() => {
     if (!user) {
@@ -129,12 +163,18 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     try {
       setError(null);
 
+      const finalDataStructure =
+        dataStructure === "other" ? `Other: ${dataStructureOther}` : dataStructure || null;
+      const finalTechnique = technique === "other" ? `Other: ${techniqueOther}` : technique || null;
+
       if (editingId) {
         await updateLeetCodeProblem(
           editingId,
           formData.problem_date,
           formData.problem_name,
-          formData.description
+          formData.description,
+          finalDataStructure || undefined,
+          finalTechnique || undefined
         );
         setProblems((prev) =>
           prev.map((p) =>
@@ -144,6 +184,8 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                   problem_date: formData.problem_date,
                   problem_name: formData.problem_name,
                   description: formData.description,
+                  data_structure: finalDataStructure,
+                  technique: finalTechnique,
                 }
               : p
           )
@@ -152,7 +194,9 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
         const result = await addLeetCodeProblem(
           formData.problem_date,
           formData.problem_name,
-          formData.description
+          formData.description,
+          finalDataStructure || undefined,
+          finalTechnique || undefined
         );
         // Add the new problem to state directly instead of refetching all
         if (result.data) {
@@ -166,6 +210,10 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
         problem_name: "",
         description: "",
       });
+      setDataStructure("");
+      setDataStructureOther("");
+      setTechnique("");
+      setTechniqueOther("");
       setIsAddingProblem(false);
       setEditingId(null);
     } catch (err) {
@@ -183,6 +231,35 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       problem_name: problem.problem_name,
       description: problem.description || "",
     });
+
+    // Extract data structure
+    if (problem.data_structure) {
+      if (problem.data_structure.startsWith("Other: ")) {
+        setDataStructure("other");
+        setDataStructureOther(problem.data_structure.substring(7));
+      } else {
+        setDataStructure(problem.data_structure);
+        setDataStructureOther("");
+      }
+    } else {
+      setDataStructure("");
+      setDataStructureOther("");
+    }
+
+    // Extract technique
+    if (problem.technique) {
+      if (problem.technique.startsWith("Other: ")) {
+        setTechnique("other");
+        setTechniqueOther(problem.technique.substring(7));
+      } else {
+        setTechnique(problem.technique);
+        setTechniqueOther("");
+      }
+    } else {
+      setTechnique("");
+      setTechniqueOther("");
+    }
+
     setIsAddingProblem(true);
   };
 
@@ -226,6 +303,10 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       problem_name: "",
       description: "",
     });
+    setDataStructure("");
+    setDataStructureOther("");
+    setTechnique("");
+    setTechniqueOther("");
     setError(null);
     setCancelConfirmDialogOpen(false);
   };
@@ -285,6 +366,16 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       );
     }
 
+    // Apply data structure filter
+    if (filterDataStructure) {
+      filtered = filtered.filter((p) => p.data_structure === filterDataStructure);
+    }
+
+    // Apply technique filter
+    if (filterTechnique) {
+      filtered = filtered.filter((p) => p.technique === filterTechnique);
+    }
+
     // Apply date range filter
     if (filterStartDate || filterEndDate) {
       filtered = filtered.filter((p) => {
@@ -306,10 +397,12 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     setSearchQuery("");
     setFilterStartDate(null);
     setFilterEndDate(null);
+    setFilterDataStructure("");
+    setFilterTechnique("");
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = searchQuery.trim() !== "" || filterStartDate !== null || filterEndDate !== null;
+  const hasActiveFilters = searchQuery.trim() !== "" || filterStartDate !== null || filterEndDate !== null || filterDataStructure !== "" || filterTechnique !== "";
 
   // Pagination logic
   const filteredProblems = getFilteredProblems();
@@ -436,6 +529,36 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                       </button>
                     </Badge>
                   )}
+                  {filterDataStructure && (
+                    <Badge variant="secondary" className="gap-1">
+                      DS: {filterDataStructure}
+                      <button
+                        onClick={() => {
+                          setFilterDataStructure("");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 hover:text-slate-600"
+                        aria-label="Clear data structure filter"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {filterTechnique && (
+                    <Badge variant="secondary" className="gap-1">
+                      Tech: {filterTechnique}
+                      <button
+                        onClick={() => {
+                          setFilterTechnique("");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 hover:text-slate-600"
+                        aria-label="Clear technique filter"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
                   {filterStartDate && (
                     <Badge variant="secondary" className="gap-1">
                       From: {format(filterStartDate, "MMM d")}
@@ -479,93 +602,137 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                 </div>
               )}
 
-              {/* Filter Panel */}
-              {showFilters && (
-                <div className="p-3 sm:p-4 rounded-lg border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-slate-800/50 space-y-3 sm:space-y-4">
-                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <Label htmlFor="start-date" className="text-xs sm:text-sm">
-                        Start Date
-                      </Label>
-                      <Popover open={startDateCalendarOpen} onOpenChange={setStartDateCalendarOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="start-date"
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal text-xs sm:text-sm py-2 h-auto bg-white dark:bg-slate-950/50"
-                          >
-                            {filterStartDate ? format(filterStartDate, "MMM d, yyyy") : "Select start date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={filterStartDate || undefined}
-                            onSelect={(date) => {
-                              setFilterStartDate(date || null);
-                              setStartDateCalendarOpen(false);
-                              setCurrentPage(1);
-                            }}
-                            disabled={(date) => date > new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <Label htmlFor="end-date" className="text-xs sm:text-sm">
-                        End Date
-                      </Label>
-                      <Popover open={endDateCalendarOpen} onOpenChange={setEndDateCalendarOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="end-date"
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal text-xs sm:text-sm py-2 h-auto bg-white dark:bg-slate-950/50"
-                          >
-                            {filterEndDate ? format(filterEndDate, "MMM d, yyyy") : "Select end date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={filterEndDate || undefined}
-                            onSelect={(date) => {
-                              setFilterEndDate(date || null);
-                              setEndDateCalendarOpen(false);
-                              setCurrentPage(1);
-                            }}
-                            disabled={(date) => date > new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+              {/* Filter Panel - Show/hide with display + height animation */}
+              <div className={`${!showFilters ? "hidden" : "block"} relative p-3 sm:p-4 rounded-lg border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-slate-800/50 space-y-3 sm:space-y-4 transition-all duration-200`}>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="filter-data-structure" className="text-xs sm:text-sm">
+                      Data Structure
+                    </Label>
+                    <Select value={filterDataStructure} onValueChange={(value) => {
+                      setFilterDataStructure(value);
+                      setCurrentPage(1);
+                    }}>
+                      <SelectTrigger id="filter-data-structure" className="text-xs sm:text-sm h-auto py-1.5 sm:py-2 bg-white dark:bg-slate-950/50">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DATA_STRUCTURE_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      onClick={() => setShowFilters(false)}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
-                    >
-                      Done
-                    </Button>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="filter-technique" className="text-xs sm:text-sm">
+                      Technique
+                    </Label>
+                    <Select value={filterTechnique} onValueChange={(value) => {
+                      setFilterTechnique(value);
+                      setCurrentPage(1);
+                    }}>
+                      <SelectTrigger id="filter-technique" className="text-xs sm:text-sm h-auto py-1.5 sm:py-2 bg-white dark:bg-slate-950/50">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TECHNIQUE_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              )}
+
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="start-date" className="text-xs sm:text-sm">
+                      Start Date
+                    </Label>
+                    <Popover open={startDateCalendarOpen} onOpenChange={setStartDateCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="start-date"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal text-xs sm:text-sm py-2 h-auto bg-white dark:bg-slate-950/50"
+                        >
+                          {filterStartDate ? format(filterStartDate, "MMM d, yyyy") : "Select start date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filterStartDate || undefined}
+                          onSelect={(date) => {
+                            setFilterStartDate(date || null);
+                            setStartDateCalendarOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="end-date" className="text-xs sm:text-sm">
+                      End Date
+                    </Label>
+                    <Popover open={endDateCalendarOpen} onOpenChange={setEndDateCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="end-date"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal text-xs sm:text-sm py-2 h-auto bg-white dark:bg-slate-950/50"
+                        >
+                          {filterEndDate ? format(filterEndDate, "MMM d, yyyy") : "Select end date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filterEndDate || undefined}
+                          onSelect={(date) => {
+                            setFilterEndDate(date || null);
+                            setEndDateCalendarOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    onClick={() => setShowFilters(false)}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Result Count */}
-          {problems.length > 0 && (
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-              Showing {paginatedProblems.length} of {filteredProblems.length} problems
-              {hasActiveFilters && ` (filtered from ${problems.length} total)`}
-            </p>
-          )}
+          {/* Result Count - Fixed height to prevent reflow */}
+          <div className="h-6 sm:h-5">
+            {problems.length > 0 && (
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                Showing {paginatedProblems.length} of {filteredProblems.length} problems
+                {hasActiveFilters && ` (filtered from ${problems.length} total)`}
+              </p>
+            )}
+          </div>
 
           {/* Add/Edit Form */}
           {isAddingProblem && (
@@ -634,6 +801,62 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                 />
               </div>
 
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="data-structure" className="text-xs sm:text-sm">
+                    Data Structure
+                  </Label>
+                  <Select value={dataStructure} onValueChange={setDataStructure}>
+                    <SelectTrigger id="data-structure" className="text-xs sm:text-sm h-auto py-1.5 sm:py-2">
+                      <SelectValue placeholder="Select a data structure" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DATA_STRUCTURE_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {dataStructure === "other" && (
+                    <Input
+                      placeholder="Specify data structure"
+                      value={dataStructureOther}
+                      onChange={(e) => setDataStructureOther(e.target.value)}
+                      className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="technique" className="text-xs sm:text-sm">
+                    Technique
+                  </Label>
+                  <Select value={technique} onValueChange={setTechnique}>
+                    <SelectTrigger id="technique" className="text-xs sm:text-sm h-auto py-1.5 sm:py-2">
+                      <SelectValue placeholder="Select a technique" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TECHNIQUE_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {technique === "other" && (
+                    <Input
+                      placeholder="Specify technique"
+                      value={techniqueOther}
+                      onChange={(e) => setTechniqueOther(e.target.value)}
+                      className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
+                    />
+                  )}
+                </div>
+              </div>
+
               <div className="flex gap-2 justify-end">
                 <Button
                   type="button"
@@ -687,7 +910,21 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                           onClick={() => handleOpenDetails(problem)}
                           className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-slate-900 dark:text-slate-100 cursor-pointer hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
                         >
-                          {problem.problem_name}
+                          <div className="flex flex-col gap-1">
+                            <span>{problem.problem_name}</span>
+                            <div className="flex flex-wrap gap-1">
+                              {problem.data_structure && (
+                                <Badge variant="outline" className="text-xs">
+                                  {problem.data_structure}
+                                </Badge>
+                              )}
+                              {problem.technique && (
+                                <Badge variant="outline" className="text-xs">
+                                  {problem.technique}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">
                           {problem.description || "-"}
@@ -718,6 +955,20 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mt-2">
                         {problem.description}
                       </p>
+                    )}
+                    {(problem.data_structure || problem.technique) && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {problem.data_structure && (
+                          <Badge variant="outline" className="text-xs">
+                            {problem.data_structure}
+                          </Badge>
+                        )}
+                        {problem.technique && (
+                          <Badge variant="outline" className="text-xs">
+                            {problem.technique}
+                          </Badge>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
