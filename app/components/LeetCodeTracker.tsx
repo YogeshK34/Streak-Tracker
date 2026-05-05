@@ -103,13 +103,12 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
   });
   const [dataStructure, setDataStructure] = useState("");
   const [dataStructureOther, setDataStructureOther] = useState("");
-  const [technique, setTechnique] = useState("");
-  const [techniqueOther, setTechniqueOther] = useState("");
+  const [techniques, setTechniques] = useState<string[]>([]);
   const [filterDataStructure, setFilterDataStructure] = useState("");
   const [filterTechnique, setFilterTechnique] = useState("");
   const { user } = useAuth();
 
-  const hasFormChanges = formData.problem_name.trim() !== "" || formData.description.trim() !== "" || dataStructure !== "" || technique !== "";
+  const hasFormChanges = formData.problem_name.trim() !== "" || formData.description.trim() !== "" || dataStructure !== "" || techniques.length > 0;
 
   useEffect(() => {
     if (!user) {
@@ -165,7 +164,6 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
 
       const finalDataStructure =
         dataStructure === "other" ? `Other: ${dataStructureOther}` : dataStructure || null;
-      const finalTechnique = technique === "other" ? `Other: ${techniqueOther}` : technique || null;
 
       if (editingId) {
         await updateLeetCodeProblem(
@@ -174,7 +172,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
           formData.problem_name,
           formData.description,
           finalDataStructure || undefined,
-          finalTechnique || undefined
+          techniques.length > 0 ? techniques : undefined
         );
         setProblems((prev) =>
           prev.map((p) =>
@@ -185,7 +183,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                   problem_name: formData.problem_name,
                   description: formData.description,
                   data_structure: finalDataStructure,
-                  technique: finalTechnique,
+                  technique: techniques.length > 0 ? techniques : null,
                 }
               : p
           )
@@ -196,9 +194,8 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
           formData.problem_name,
           formData.description,
           finalDataStructure || undefined,
-          finalTechnique || undefined
+          techniques.length > 0 ? techniques : undefined
         );
-        // Add the new problem to state directly instead of refetching all
         if (result.data) {
           setProblems((prev) => [result.data, ...prev]);
         }
@@ -212,8 +209,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       });
       setDataStructure("");
       setDataStructureOther("");
-      setTechnique("");
-      setTechniqueOther("");
+      setTechniques([]);
       setIsAddingProblem(false);
       setEditingId(null);
     } catch (err) {
@@ -246,18 +242,15 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
       setDataStructureOther("");
     }
 
-    // Extract technique
+    // Extract techniques array
     if (problem.technique) {
-      if (problem.technique.startsWith("Other: ")) {
-        setTechnique("other");
-        setTechniqueOther(problem.technique.substring(7));
+      if (Array.isArray(problem.technique)) {
+        setTechniques(problem.technique);
       } else {
-        setTechnique(problem.technique);
-        setTechniqueOther("");
+        setTechniques([problem.technique]);
       }
     } else {
-      setTechnique("");
-      setTechniqueOther("");
+      setTechniques([]);
     }
 
     setIsAddingProblem(true);
@@ -305,8 +298,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
     });
     setDataStructure("");
     setDataStructureOther("");
-    setTechnique("");
-    setTechniqueOther("");
+    setTechniques([]);
     setError(null);
     setCancelConfirmDialogOpen(false);
   };
@@ -373,7 +365,11 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
 
     // Apply technique filter
     if (filterTechnique) {
-      filtered = filtered.filter((p) => p.technique === filterTechnique);
+      filtered = filtered.filter((p) =>
+        p.technique && Array.isArray(p.technique)
+          ? p.technique.includes(filterTechnique)
+          : p.technique === filterTechnique
+      );
     }
 
     // Apply date range filter
@@ -831,29 +827,50 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
 
                 <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="technique" className="text-xs sm:text-sm">
-                    Technique
+                    Techniques (Select multiple)
                   </Label>
-                  <Select value={technique} onValueChange={setTechnique}>
-                    <SelectTrigger id="technique" className="text-xs sm:text-sm h-auto py-1.5 sm:py-2">
-                      <SelectValue placeholder="Select a technique" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <div className="border border-slate-300 dark:border-slate-700 rounded-md p-3 bg-white dark:bg-slate-950/50 space-y-2">
+                    {/* Selected Techniques Display */}
+                    {techniques.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {techniques.map((t) => (
+                          <Badge key={t} variant="secondary" className="gap-1">
+                            {t}
+                            <button
+                              onClick={() => setTechniques(techniques.filter((tech) => tech !== t))}
+                              className="ml-1 hover:text-slate-600 dark:hover:text-slate-300"
+                              aria-label={`Remove ${t}`}
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {/* Technique Options */}
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
                       {TECHNIQUE_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
+                        <div key={option} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`technique-${option}`}
+                            checked={techniques.includes(option)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setTechniques([...techniques, option]);
+                              } else {
+                                setTechniques(techniques.filter((t) => t !== option));
+                              }
+                            }}
+                            className="rounded border-slate-300"
+                          />
+                          <Label htmlFor={`technique-${option}`} className="text-xs sm:text-sm cursor-pointer">
+                            {option}
+                          </Label>
+                        </div>
                       ))}
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {technique === "other" && (
-                    <Input
-                      placeholder="Specify technique"
-                      value={techniqueOther}
-                      onChange={(e) => setTechniqueOther(e.target.value)}
-                      className="text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
-                    />
-                  )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -919,9 +936,17 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                                 </Badge>
                               )}
                               {problem.technique && (
-                                <Badge variant="outline" className="text-xs">
-                                  {problem.technique}
-                                </Badge>
+                                Array.isArray(problem.technique) ? (
+                                  problem.technique.map((t) => (
+                                    <Badge key={t} variant="outline" className="text-xs">
+                                      {t}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">
+                                    {problem.technique}
+                                  </Badge>
+                                )
                               )}
                             </div>
                           </div>
@@ -964,9 +989,17 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                           </Badge>
                         )}
                         {problem.technique && (
-                          <Badge variant="outline" className="text-xs">
-                            {problem.technique}
-                          </Badge>
+                          Array.isArray(problem.technique) ? (
+                            problem.technique.map((t) => (
+                              <Badge key={t} variant="outline" className="text-xs">
+                                {t}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              {problem.technique}
+                            </Badge>
+                          )
                         )}
                       </div>
                     )}

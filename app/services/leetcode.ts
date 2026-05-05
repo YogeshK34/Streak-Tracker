@@ -6,7 +6,7 @@ export type LeetCodeProblem = {
   problem_name: string;
   description: string | null;
   data_structure: string | null;
-  technique: string | null;
+  technique: string[] | null;
   created_at: string;
 };
 
@@ -50,7 +50,7 @@ export async function addLeetCodeProblem(
   problemName: string,
   description: string,
   dataStructure?: string,
-  technique?: string
+  technique?: string[]
 ) {
   try {
     const token = await getAuthToken();
@@ -119,7 +119,7 @@ export async function updateLeetCodeProblem(
   problemName: string,
   description: string,
   dataStructure?: string,
-  technique?: string
+  technique?: string[]
 ) {
   try {
     const token = await getAuthToken();

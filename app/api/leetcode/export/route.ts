@@ -55,8 +55,12 @@ export async function GET(req: NextRequest) {
         const desc = p.description ? `"${p.description.replace(/"/g, '""')}"` : "";
         const name = `"${p.problem_name.replace(/"/g, '""')}"`;
         const ds = p.data_structure ? `"${p.data_structure.replace(/"/g, '""')}"` : "";
-        const tech = p.technique ? `"${p.technique.replace(/"/g, '""')}"` : "";
-        csv += `${index + 1},${name},${desc},${ds},${tech},${p.problem_date},${p.created_at}\n`;
+        const techValue = p.technique
+          ? Array.isArray(p.technique)
+            ? `"${p.technique.join(", ").replace(/"/g, '""')}"`
+            : `"${p.technique.replace(/"/g, '""')}"`
+          : "";
+        csv += `${index + 1},${name},${desc},${ds},${techValue},${p.problem_date},${p.created_at}\n`;
       });
 
       return new NextResponse(csv, {
@@ -74,7 +78,11 @@ export async function GET(req: NextRequest) {
           p.problem_name,
           p.description || "",
           p.data_structure || "",
-          p.technique || "",
+          p.technique
+            ? Array.isArray(p.technique)
+              ? p.technique.join(", ")
+              : p.technique
+            : "",
           p.problem_date,
           p.created_at,
         ]),
