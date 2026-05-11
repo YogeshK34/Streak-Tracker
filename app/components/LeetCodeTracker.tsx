@@ -61,7 +61,6 @@ const DATA_STRUCTURE_OPTIONS = [
   "Graphs",
   "Stack",
   "Queue",
-  "HashMap",
 ];
 
 const TECHNIQUE_OPTIONS = [
@@ -72,6 +71,7 @@ const TECHNIQUE_OPTIONS = [
   "Fast & Slow Pointers",
   "Recursion",
   "Dynamic Programming",
+  "HashMap",
 ];
 
 export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps = {}) {
