@@ -849,7 +849,7 @@ export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps =
                       </div>
                     )}
                     {/* Technique Options */}
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-3">
                       {TECHNIQUE_OPTIONS.map((option) => (
                         <div key={option} className="flex items-center gap-2">
                           <input
