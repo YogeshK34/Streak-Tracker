@@ -72,6 +72,7 @@ const TECHNIQUE_OPTIONS = [
   "Recursion",
   "Dynamic Programming",
   "HashMap",
+  "HashSet",
 ];
 
 export function LeetCodeTracker({ onProblemCountChange }: LeetCodeTrackerProps = {}) {
