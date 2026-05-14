@@ -191,11 +191,11 @@ export function HabitTracker() {
   }, [markedDays]);
 
   const handleDayClick = async (day: Date) => {
-    // Allow marking only today (not past days or future days)
+    // Allow marking any day in current month, but not future days
     if (isFuture(day)) return;
 
-    const daysInPast = Math.floor((today.getTime() - startOfDay(day).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysInPast > 0) return; // Only allow today (daysInPast === 0)
+    // Check if day is in current month
+    if (day.getMonth() !== currentMonth.getMonth() || day.getFullYear() !== currentMonth.getFullYear()) return;
 
     const dateStr = format(day, "yyyy-MM-dd");
     const nextValue = !markedDays[dateStr];
@@ -430,8 +430,7 @@ export function HabitTracker() {
                         const isMarked = markedDays[dateStr];
                         const isTodayDate = isToday(day);
                         const isFutureDate = isFuture(day);
-                        const daysInPast = Math.floor((today.getTime() - startOfDay(day).getTime()) / (1000 * 60 * 60 * 24));
-                        const isClickable = !isFutureDate && daysInPast === 0;
+                        const isClickable = !isFutureDate;
                         const leetcodeCount = leetcodeProblemsByDate[dateStr] || 0;
 
                         return (
