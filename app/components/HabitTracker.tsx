@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -28,10 +29,13 @@ import { getHabitDays, setHabitDay, exportHabitData } from "@/app/services/habit
 import { getLeetCodeProblems } from "@/app/services/leetcode";
 import { useTheme } from "@/lib/theme-provider";
 import { useAuth } from "@/lib/auth-context";
-import { checkDatabaseSetup } from "@/lib/db-debug";
 import { StreakTimeline } from "./StreakTimeline";
 import { LeetCodeTracker as LeetCodeTrackerComponent } from "./LeetCodeTracker";
 import { DSNotesTracker } from "./DSNotesTracker";
+import { MotivationCard } from "./MotivationCard";
+import { AIInsights } from "./AIInsights";
+import { AISuggest } from "./AISuggest";
+import { supabase } from "@/lib/supabase-client";
 
 const MemoizedLeetCodeTracker = memo(LeetCodeTrackerComponent);
 
@@ -50,6 +54,8 @@ export function HabitTracker() {
   const [exporting, setExporting] = useState(false);
   const [leetcodeProblemCount, setLeetcodeProblemCount] = useState(0);
   const [leetcodeProblemsByDate, setLeetcodeProblemsByDate] = useState<Record<string, number>>({});
+  const [motivationQuote, setMotivationQuote] = useState<string | null>(null);
+  const [currentStreakForMotivation, setCurrentStreakForMotivation] = useState(0);
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
 
@@ -61,9 +67,6 @@ export function HabitTracker() {
       setIsLoaded(false);
       return;
     }
-
-    // Debug: Check database schema
-    checkDatabaseSetup();
 
     getHabitDays()
       .then((res) => {
@@ -218,6 +221,54 @@ export function HabitTracker() {
     try {
       // Save in background without blocking UI
       await setHabitDay(dateStr, nextValue);
+
+      // Check for motivation trigger on milestone streaks (only when marking)
+      if (nextValue) {
+        // Calculate new streak
+        const today = startOfDay(new Date());
+        let newStreak = 0;
+        let currentDate = today;
+        const updatedDays = { ...markedDays, [dateStr]: true };
+
+        while (true) {
+          const dateKey = format(currentDate, "yyyy-MM-dd");
+          if (updatedDays[dateKey]) {
+            newStreak++;
+            currentDate = subDays(currentDate, 1);
+          } else {
+            break;
+          }
+        }
+
+        const milestones = [1, 3, 7, 14, 21, 30];
+        if (milestones.includes(newStreak)) {
+          setCurrentStreakForMotivation(newStreak);
+
+          // Fetch motivation quote
+          try {
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+            if (session) {
+              const res = await fetch("/api/ai/motivation", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ streakCount: newStreak }),
+              });
+
+              if (res.ok) {
+                const json = await res.json();
+                setMotivationQuote(json.quote);
+              }
+            }
+          } catch (motivationError) {
+            console.error("Failed to fetch motivation quote:", motivationError);
+          }
+        }
+      }
     } catch (saveError) {
       console.error("Failed to save habit day:", saveError);
       const errorMsg = saveError instanceof Error ? saveError.message : String(saveError);
@@ -500,11 +551,13 @@ export function HabitTracker() {
             </TabsContent>
 
             {/* Other Tabs */}
-            <TabsContent value="history" className="mt-6 min-h-[400px]">
+            <TabsContent value="history" className="mt-6 min-h-[400px] space-y-6">
+              <AIInsights />
               <StreakTimeline />
             </TabsContent>
 
-            <TabsContent value="leetcode" className="mt-6 min-h-[400px]">
+            <TabsContent value="leetcode" className="mt-6 min-h-[400px] space-y-6">
+              <AISuggest />
               <MemoizedLeetCodeTracker onProblemCountChange={handleLeetcodeChange} />
             </TabsContent>
 
@@ -514,6 +567,22 @@ export function HabitTracker() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={motivationQuote !== null} onOpenChange={(open) => !open && setMotivationQuote(null)}>
+        <DialogContent className="max-w-2xl border-0 bg-transparent shadow-none p-0">
+          <DialogTitle className="sr-only">Motivation Quote</DialogTitle>
+          <div className="flex flex-col items-center gap-6">
+            <MotivationCard quote={motivationQuote || ""} streakCount={currentStreakForMotivation} />
+            <Button
+              onClick={() => setMotivationQuote(null)}
+              variant="ghost"
+              className="text-slate-400 hover:text-slate-300"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
