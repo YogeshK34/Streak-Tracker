@@ -9,8 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^3.0.39",
+    "@ai-sdk/react": "^3.0.199",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@supabase/supabase-js": "^2.102.1",
+    "ai": "^6.0.197",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
