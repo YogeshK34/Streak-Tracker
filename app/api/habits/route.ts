@@ -164,7 +164,11 @@ export async function POST(req: NextRequest) {
       }
 
       console.log("✅ Upserted successfully:", upsertData);
-      return NextResponse.json({ data: { date, marked } }, { status: 200 });
+
+      // Calculate and return the current streak
+      const currentStreak = calculateCurrentStreak(newMarkedDays);
+
+      return NextResponse.json({ data: { date, marked, currentStreak } }, { status: 200 });
     }
 
     console.log(`🗑️ Deleting: user_id=${user.id}, tracked_date=${date}`);

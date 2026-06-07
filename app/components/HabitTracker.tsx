@@ -220,53 +220,43 @@ export function HabitTracker() {
 
     try {
       // Save in background without blocking UI
-      await setHabitDay(dateStr, nextValue);
+      const response = await setHabitDay(dateStr, nextValue);
+
+      console.log("Day marked. Current streak:", response?.data?.currentStreak);
+      console.log("Is milestone?", [1, 3, 7, 14, 21, 30].includes(response?.data?.currentStreak));
 
       // Check for motivation trigger on milestone streaks (only when marking)
-      if (nextValue) {
-        // Calculate new streak
-        const today = startOfDay(new Date());
-        let newStreak = 0;
-        let currentDate = today;
-        const updatedDays = { ...markedDays, [dateStr]: true };
+      if (nextValue && response?.data?.currentStreak) {
+        // Use the fresh streak value from the API response
+        const newStreak = response.data.currentStreak;
 
-        while (true) {
-          const dateKey = format(currentDate, "yyyy-MM-dd");
-          if (updatedDays[dateKey]) {
-            newStreak++;
-            currentDate = subDays(currentDate, 1);
-          } else {
-            break;
-          }
-        }
+        // TEMPORARY TEST: Always fetch motivation for debugging
+        console.log("TEST MODE: Forcing motivation API call for streak:", newStreak);
+        setCurrentStreakForMotivation(newStreak);
 
-        const milestones = [1, 3, 7, 14, 21, 30];
-        if (milestones.includes(newStreak)) {
-          setCurrentStreakForMotivation(newStreak);
+        // Fetch motivation quote
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (session) {
+            const res = await fetch("/api/ai/motivation", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ streakCount: newStreak }),
+            });
 
-          // Fetch motivation quote
-          try {
-            const {
-              data: { session },
-            } = await supabase.auth.getSession();
-            if (session) {
-              const res = await fetch("/api/ai/motivation", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ streakCount: newStreak }),
-              });
-
-              if (res.ok) {
-                const json = await res.json();
-                setMotivationQuote(json.quote);
-              }
+            if (res.ok) {
+              const json = await res.json();
+              console.log("Motivation API response:", json);
+              setMotivationQuote(json.quote);
             }
-          } catch (motivationError) {
-            console.error("Failed to fetch motivation quote:", motivationError);
           }
+        } catch (motivationError) {
+          console.error("Failed to fetch motivation quote:", motivationError);
         }
       }
     } catch (saveError) {
@@ -490,13 +480,11 @@ export function HabitTracker() {
                             type="button"
                             onClick={() => handleDayClick(day)}
                             disabled={!isClickable}
-                            className={`aspect-square rounded-lg sm:rounded-3xl border p-0.5 transition-all duration-300 text-xs sm:text-sm font-semibold ${
-                              !isClickable
+                            className={`aspect-square rounded-lg sm:rounded-3xl border p-0.5 transition-all duration-300 text-xs sm:text-sm font-semibold ${!isClickable
                                 ? "cursor-not-allowed bg-slate-100 dark:bg-slate-950/40 border-slate-300 dark:border-slate-800/50 opacity-35"
                                 : "bg-white dark:bg-slate-950/90 border-slate-300 dark:border-slate-700 hover:border-cyan-400 dark:hover:border-cyan-400/50 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.3)]"
-                            } ${
-                              isMarked ? "bg-gradient-to-br from-cyan-500 to-emerald-500 border-cyan-400/50 dark:border-cyan-400/50 shadow-lg shadow-cyan-500/25" : "text-slate-700 dark:text-slate-200"
-                            } ${isTodayDate ? "ring-2 ring-cyan-300/70" : ""}`}
+                              } ${isMarked ? "bg-gradient-to-br from-cyan-500 to-emerald-500 border-cyan-400/50 dark:border-cyan-400/50 shadow-lg shadow-cyan-500/25" : "text-slate-700 dark:text-slate-200"
+                              } ${isTodayDate ? "ring-2 ring-cyan-300/70" : ""}`}
                           >
                             <span className="relative flex h-full w-full flex-col items-center justify-center">
                               <span className={isMarked ? "text-white" : ""}>{format(day, "d")}</span>
@@ -568,7 +556,7 @@ export function HabitTracker() {
         </CardContent>
       </Card>
 
-      <Dialog open={motivationQuote !== null} onOpenChange={(open) => !open && setMotivationQuote(null)}>
+      <Dialog open={motivationQuote !== null && motivationQuote !== ""} onOpenChange={(open) => !open && setMotivationQuote(null)}>
         <DialogContent className="max-w-2xl border-0 bg-transparent shadow-none p-0">
           <DialogTitle className="sr-only">Motivation Quote</DialogTitle>
           <div className="flex flex-col items-center gap-6">
